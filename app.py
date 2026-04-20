@@ -12,7 +12,6 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 app.debug = True
-app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
@@ -21,6 +20,8 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Load environment variables from .env file
 load_dotenv()
+
+app.secret_key = os.getenv("SECRET_KEY")
 
 # Get the MongoDB connection string from the environment variable
 # to set environment variable setx MONGO_PASSWORD your_pass
@@ -830,5 +831,4 @@ def reset_dates():
 # main function
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
-
 
