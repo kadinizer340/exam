@@ -1,0 +1,40 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Environment variables
+.env
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Flask
+instance/
+
+# Uploads & generated files
+uploads/
+static/stuarrange*.txt
+*.log
+
+# Temp files
+tempCodeRunnerFile.py
+
+# Pyenv
+.python-version
+
+# Optional: Excel test files
+*.xlsx
+*.xls
