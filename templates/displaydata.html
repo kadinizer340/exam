@@ -1,16 +1,77 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Uploades</title>
-  </head>
-  <body>
-    <h1>Successfully Uploaded</h1>
-    <h2>2nd Year</h2>
-    <pre>{{data2|tojson(indent=4)}}</pre>
-    <h2>3rd Year</h2>
-    <pre>{{data3|tojson(indent=4)}}</pre>
-    <h2>4th Year</h2>
-    <pre>{{data4|tojson(indent=4)}}</pre>
-  </body>
-</html>
+{% extends "admin_base.html" %}
+
+{% set page_title = "Uploaded Data Preview" %}
+{% set page_subtitle = "Inspect the latest in-memory upload objects rendered directly from the existing route." %}
+{% set active_page = "upload-data" %}
+
+{% block admin_content %}
+<section class="section-stack">
+  <div class="selection-card">
+    <div class="preview-header">
+      <div>
+        <p class="eyebrow">Raw Preview</p>
+        <h2>Current upload payloads</h2>
+        <p class="muted-text">
+          This page shows the current workbook objects exactly as the upload route is holding them.
+        </p>
+      </div>
+      <div class="button-row">
+        <a href="{{ url_for('uploadpage') }}" class="button button-secondary"
+          >Upload More Data</a
+        >
+        <a href="{{ url_for('admin') }}" class="button button-primary"
+          >Back to Dashboard</a
+        >
+      </div>
+    </div>
+  </div>
+
+  {% if (data2 is defined and data2 is not none) or (data3 is defined and data3 is not none) or (data4 is defined and data4 is not none) %}
+  <div class="preview-grid">
+    {% if data2 is defined and data2 is not none %}
+    <article class="json-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Second Year</p>
+          <h3>Workbook JSON</h3>
+        </div>
+      </div>
+      <pre class="json-block">{{ data2|tojson(indent=2) }}</pre>
+    </article>
+    {% endif %}
+
+    {% if data3 is defined and data3 is not none %}
+    <article class="json-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Third Year</p>
+          <h3>Workbook JSON</h3>
+        </div>
+      </div>
+      <pre class="json-block">{{ data3|tojson(indent=2) }}</pre>
+    </article>
+    {% endif %}
+
+    {% if data4 is defined and data4 is not none %}
+    <article class="json-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Fourth Year</p>
+          <h3>Workbook JSON</h3>
+        </div>
+      </div>
+      <pre class="json-block">{{ data4|tojson(indent=2) }}</pre>
+    </article>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty-card">
+    <p class="eyebrow">Nothing loaded</p>
+    <h2>No upload data is available in the current session yet.</h2>
+    <p class="muted-text">
+      Upload a student workbook first, then return here to preview the in-memory data structure.
+    </p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="loading-overlay" data-loading-overlay hidden>
+  <div class="loading-panel">
+    <div class="spinner"></div>
+    <h2>Generating seating plan</h2>
+    <p>Please wait while the allocation engine prepares the latest arrangement.</p>
+  </div>
+</div>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <a href="{{ url_for('admin') }}" class="brand brand-stack">
+      <span class="brand-mark">S</span>
+      <span>
+        <strong>Seat Allocation</strong>
+        <small>Admin workspace</small>
+      </span>
+    </a>
+
+    <div class="sidebar-panel">
+      <p class="eyebrow">Operations</p>
+      <p class="sidebar-copy">
+        Manage uploads, select rooms, and publish seating plans from one place.
+      </p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a
+        href="{{ url_for('admin') }}"
+        class="sidebar-link {% if active_page == 'dashboard' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">Dashboard</span>
+        <small>Overview</small>
+      </a>
+      <a
+        href="{{ url_for('uploadpage') }}"
+        class="sidebar-link {% if active_page == 'upload-data' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">Student Data</span>
+        <small>Upload workbooks</small>
+      </a>
+      <a
+        href="{{ url_for('timetable') }}"
+        class="sidebar-link {% if active_page == 'upload-timetable' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">Timetable</span>
+        <small>Attach exam schedules</small>
+      </a>
+      <a
+        href="{{ url_for('classchoose') }}"
+        class="sidebar-link {% if active_page == 'classes' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">Class Selection</span>
+        <small>Choose available rooms</small>
+      </a>
+      <a
+        href="{{ url_for('viewseating') }}"
+        class="sidebar-link {% if active_page == 'seating' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">View Seating</span>
+        <small>Browse generated layouts</small>
+      </a>
+      <a
+        href="{{ url_for('reset') }}"
+        class="sidebar-link {% if active_page == 'reset' %}is-active{% endif %}"
+      >
+        <span class="sidebar-link-text">Reset Tools</span>
+        <small>Maintenance actions</small>
+      </a>
+    </nav>
+
+    <div class="sidebar-panel sidebar-user">
+      <p class="sidebar-label">Signed in</p>
+      <strong>{{ session.get('username', 'Administrator') }}</strong>
+      <small>Keep the operational flow moving without leaving the dashboard.</small>
+    </div>
+
+    <div class="sidebar-actions">
+      <a href="{{ url_for('index') }}" class="button button-secondary button-block"
+        >Public landing</a
+      >
+      <a
+        href="{{ url_for('student') }}"
+        class="button button-ghost button-block"
+        >Student portal</a
+      >
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div>
+        <p class="eyebrow">Student Seat Allocation System</p>
+        <h1>{{ page_title or "Admin" }}</h1>
+        <p class="page-intro">
+          {{ page_subtitle or "Run the end-to-end exam seating workflow from this panel." }}
+        </p>
+      </div>
+      <div class="topbar-badges">
+        <span class="badge badge-neutral">Light workspace</span>
+        <span class="badge badge-primary">Live workflow</span>
+      </div>
+    </header>
+
+    {% block admin_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %}

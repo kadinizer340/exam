@@ -1,240 +1,210 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Admin</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
-      crossorigin="anonymous"
+{% extends "admin_base.html" %}
+
+{% set page_title = "Admin Dashboard" %}
+{% set page_subtitle = "Run the complete seating workflow with cleaner navigation, clearer actions, and polished status feedback." %}
+{% set active_page = "dashboard" %}
+
+{% block admin_content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<section class="alert-stack">
+  {% for category, message in messages %}
+  <div class="alert {% if category == 'success' %}alert-success{% elif category == 'danger' %}alert-warning{% else %}alert-danger{% endif %}">
+    <strong>Status update</strong>
+    <p>{{ message }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endwith %}
+
+<section class="dashboard-hero surface-card">
+  <p class="eyebrow">Operational Flow</p>
+  <h2>Move from uploads to seat generation in four guided steps.</h2>
+  <p class="muted-text">
+    Every card below maps to an existing route in the application. The backend
+    behavior stays unchanged; only the dashboard experience has been upgraded.
+  </p>
+
+  <div class="workflow-steps">
+    <div class="workflow-step">
+      <strong>1. Upload data</strong>
+      <span>Import Excel workbooks with student names and roll numbers.</span>
+    </div>
+    <div class="workflow-step">
+      <strong>2. Upload timetable</strong>
+      <span>Attach exam dates and subject lists per branch or section mapping.</span>
+    </div>
+    <div class="workflow-step">
+      <strong>3. Select rooms</strong>
+      <span>Choose the classrooms available for the exam session.</span>
+    </div>
+    <div class="workflow-step">
+      <strong>4. Generate seating</strong>
+      <span>Create the final arrangement and review it by exam date.</span>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-grid">
+  <article class="dashboard-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Upload</p>
+        <h3>Student Data</h3>
+      </div>
+      <span class="badge badge-primary">Step 1</span>
+    </div>
+    <p class="card-copy">
+      Import second, third, and fourth year student workbooks with section sheet
+      names and the required `rollnum` and `name` columns.
+    </p>
+    <img
+      src="{{ url_for('static', filename='datascreenshot.jpg') }}"
+      alt="Student data preview"
+      loading="lazy"
     />
-    <style>
-      /* Styles for the loading screen */
-      .loading-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(
-          0,
-          0,
-          0,
-          0.7
-        ); /* Semi-transparent black background */
-        display: none; /* Initially hidden */
-        justify-content: center;
-        align-items: center;
-        z-index: 9999; /* Place it above other content */
-      }
+    <div class="button-row">
+      <a href="{{ url_for('uploadpage') }}" class="button button-primary"
+        >Upload Student Data</a
+      >
+      <a href="{{ url_for('display_data') }}" class="button button-secondary"
+        >Preview Latest Upload</a
+      >
+    </div>
+  </article>
 
-      .loading-icon {
-        border: 4px solid #f3f3f3; /* Light gray border */
-        border-top: 4px solid #3498db; /* Blue border on top */
-        border-radius: 50%; /* Circular shape */
-        width: 30px;
-        height: 30px;
-        animation: spin 2s linear infinite; /* Rotation animation */
-      }
+  <article class="dashboard-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Upload</p>
+        <h3>Timetable</h3>
+      </div>
+      <span class="badge badge-primary">Step 2</span>
+    </div>
+    <p class="card-copy">
+      Add the exam timetable workbooks so each group of students is assigned the
+      right subject list and date sequence.
+    </p>
+    <img
+      src="{{ url_for('static', filename='timetablescreenshot.jpg') }}"
+      alt="Timetable upload preview"
+      loading="lazy"
+    />
+    <div class="button-row">
+      <a href="{{ url_for('timetable') }}" class="button button-primary"
+        >Upload Timetable</a
+      >
+      <a href="{{ url_for('view_timetable') }}" class="button button-secondary"
+        >Open Timetable JSON</a
+      >
+    </div>
+  </article>
 
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      
-    </style>
-  </head>
-  <body>
-    <div id="loadingScreen" class="loading-screen">
-      <div class="loading-icon"></div>
+  <article class="dashboard-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Configure</p>
+        <h3>Class Selection</h3>
+      </div>
+      <span class="badge badge-neutral">Step 3</span>
+    </div>
+    <p class="card-copy">
+      Pick the available classrooms and their stored capacities before running the
+      allocation algorithm.
+    </p>
+    <img
+      src="{{ url_for('static', filename='classscreenshot.jpg') }}"
+      alt="Class selection preview"
+      loading="lazy"
+    />
+    <div class="button-row">
+      <a href="{{ url_for('classchoose') }}" class="button button-primary"
+        >Choose Classrooms</a
+      >
+    </div>
+  </article>
+
+  <article class="dashboard-card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Generate</p>
+        <h3>Seating Plan</h3>
+      </div>
+      <span class="badge badge-success">Step 4</span>
+    </div>
+    <p class="card-copy">
+      Run the seating engine and then review the generated arrangement by date
+      using the upgraded seating browser.
+    </p>
+    <img
+      src="{{ url_for('static', filename='seatingscreenshot.jpg') }}"
+      alt="Seating overview preview"
+      loading="lazy"
+    />
+    <div class="button-row">
+      <a
+        href="{{ url_for('seating') }}"
+        class="button button-primary"
+        data-loading-trigger
+        >Generate Seating</a
+      >
+      <a href="{{ url_for('viewseating') }}" class="button button-secondary"
+        >View Seating</a
+      >
+    </div>
+  </article>
+</section>
+
+<section class="status-grid">
+  <article class="status-card">
+    <div class="section-heading">
+      <p class="eyebrow">Workflow notes</p>
+      <h2>Keep the process predictable for staff.</h2>
     </div>
 
-    <div class="container py-3">
-      <header>
-        <div
-          class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom"
-        >
-          <a
-            href="/admin"
-            class="d-flex align-items-center link-body-emphasis text-decoration-none"
-          >
-            <span class="fs-4">Admin Panel</span>
-          </a>
-
-          <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
-            <a
-              class="me-3 py-2 link-body-emphasis text-decoration-none"
-              href="/"
-              >Home</a
-            >
-            <a
-              class="me-3 py-2 link-body-emphasis text-decoration-none"
-              href="/viewdata"
-              >View Data</a
-            >
-            <a
-              class="me-3 py-2 link-body-emphasis text-decoration-none"
-              href="/viewtimetable"
-              >View Timetable</a
-            >
-            <a
-              class="py-2 link-body-emphasis text-decoration-none"
-              href="/reset"
-              >Reset Data</a
-            >
-          </nav>
-        </div>
-      </header>
-    </div>
-
-    <div class="container col-xxl-8 px-4 py-5 mb-3">
-      <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
-        <div class="col-lg-7">
-          <h1 class="display-5 fw-bold text-body-emphasis lh-1 mb-5">
-            Upload the Students Data
-          </h1>
-          <p class="lead">
-            Upload every students data. Students from every branch,year. Upload
-            it as excel file. Check the screenshot for the format. Enter the
-            Sheetname as class name. Headings as "rollnum" & "name"
+    <div class="status-list">
+      <div class="status-item">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Upload student data first</strong>
+          <p class="muted-text">
+            The timetable mapping depends on student records already existing in the database.
           </p>
-          <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-            <a href="/uploaddata" class="btn btn-primary btn-lg px-4 me-md-2"
-              >Upload Data
-            </a>
-          </div>
-        </div>
-        <div class="col-10 col-sm-8 col-lg-5">
-          <img
-            src="/static/datascreenshot.jpg"
-            class="d-block mx-lg-auto img-fluid"
-            alt="Screenshot"
-            width="700"
-            height="500"
-            loading="lazy"
-          />
         </div>
       </div>
-
-      <div class="container col-xxl-8 px-4 py-6">
-        <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
-          <div class="col-10 col-sm-8 col-lg-5">
-            <img
-              src="/static/timetablescreenshot.jpg"
-              class="d-block mx-lg-auto img-fluid"
-              alt="Screenshot"
-              width="700"
-              height="500"
-              loading="lazy"
-            />
-          </div>
-          <div class="col-lg-7">
-            <h1 class="display-5 fw-bold text-body-emphasis lh-1 mb-3">
-              Upload the Students Timetable
-            </h1>
-            <p class="lead">
-              Upload every students timetable. Students from every branch,year.
-              Upload it as excel file. Check the screenshot for the format.
-              Enter the Sheetname as class name. Headings as "date" & "subject"
-            </p>
-            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-              <a href="/timetable" class="btn btn-primary btn-lg px-4 me-md-2"
-                >Upload Timetable
-              </a>
-            </div>
-          </div>
+      <div class="status-item">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Keep Excel sheet names consistent</strong>
+          <p class="muted-text">
+            The backend uses sheet names to link student groups with timetable groups.
+          </p>
         </div>
       </div>
-
-      <div class="container col-xxl-8 px-4 py-5 mb-5">
-        <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
-          <div class="col-lg-6">
-            <h1 class="display-5 fw-bold text-body-emphasis lh-1 mb-3">
-              Choose the available classes
-            </h1>
-            <p class="lead">
-              Choose the classes which are available for seating the students
-              for the examination.
-            </p>
-            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-              <a href="/class" class="btn btn-primary btn-lg px-4 me-md-2"
-                >Choose Class
-              </a>
-            </div>
-          </div>
-          <div class="col-10 col-sm-8 col-lg-6">
-            <img
-              src="/static/classscreenshot.jpg"
-              class="d-block mx-lg-auto img-fluid"
-              alt="Screenshot"
-              width="600"
-              height="700"
-              loading="lazy"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div class="container col-xxl-8 px-4 py-5">
-        <div class="row flex-lg-row-reverse align-items-center g-5 py-5">
-          <div class="col-lg-6">
-            <h1 class="display-5 fw-bold text-body-emphasis lh-1 mb-3">
-              Seat Arrangement
-            </h1>
-            <p class="lead">
-              Arrange the students seats in available classes and seats without
-              the same subject coming next to each other. If generated,success
-              message will be shown and can be viewed through "View Seating"
-            </p>
-            <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-              <a
-                href="/seating"
-                class="btn btn-primary btn-lg px-4 me-md-2"
-                onclick="showLoadingScreen()"
-                >Generate</a
-              >
-
-              <a href="/viewseating" class="btn btn-primary btn-lg px-4 me-md-2"
-                >View Seating</a
-              >
-            </div>
-            {% with messages = get_flashed_messages(with_categories=true) %} {%
-            if messages %} {% for category, message in messages %} {% if
-            category == 'success' %}
-            <div class="alert alert-success mt-4" style="width: fit-content">
-              {{ message }}
-            </div>
-            {% elif category == 'error' %}
-            <div class="alert alert-danger mt-4" style="width: fit-content">
-              {{ message }}
-            </div>
-            {% endif %} {% endfor %} {% endif %} {% endwith %}
-          </div>
-          <div class="col-10 col-sm-8 col-lg-6">
-            <img
-              src="/static/seatingscreenshot.jpg"
-              class="d-block mx-lg-auto img-fluid"
-              alt="Screenshot"
-              width="700"
-              height="500"
-              loading="lazy"
-            />
-          </div>
+      <div class="status-item">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Choose rooms before generation</strong>
+          <p class="muted-text">
+            The seat generator reads the selected classroom capacities from the stored room list.
+          </p>
         </div>
       </div>
     </div>
+  </article>
 
-    <script>
-      function showLoadingScreen() {
-        const loadingScreen = document.getElementById("loadingScreen");
-        loadingScreen.style.display = "flex"; // Show loading screen
-      }
-    </script>
-  </body>
-</html>
+  <article class="status-card">
+    <div class="section-heading">
+      <p class="eyebrow">Utilities</p>
+      <h2>Data and maintenance links</h2>
+    </div>
+    <div class="utility-links">
+      <a href="{{ url_for('view_data') }}" class="utility-link">Student JSON</a>
+      <a href="{{ url_for('view_timetable') }}" class="utility-link">Timetable JSON</a>
+      <a href="{{ url_for('reset') }}" class="utility-link">Reset Tools</a>
+      <a href="{{ url_for('student') }}" class="utility-link">Student Portal</a>
+    </div>
+  </article>
+</section>
+{% endblock %}

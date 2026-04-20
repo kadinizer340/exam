@@ -1,186 +1,240 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Admin Page</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
-      crossorigin="anonymous"
-    />
-    <style>
-      .form-container {
-        height: 70vh;
-      }
-      .form-signin {
-        max-width: 330px;
-        padding: 1rem;
-        border-radius: 10px;
-      }
+{% extends "base.html" %}
 
-      .form-signin .form-floating:focus-within {
-        z-index: 2;
-      }
+{% set page_title = "Admin Access" %}
+{% set body_class = "auth-page" %}
 
-      .form-signin input[type="email"] {
-        margin-bottom: -1px;
-        border-bottom-right-radius: 0;
-        border-bottom-left-radius: 0;
-      }
+{% block body %}
+<header class="public-nav">
+  <a href="{{ url_for('index') }}" class="brand">
+    <span class="brand-mark">S</span>
+    <span>
+      <strong>Seat Allocation</strong>
+      <small>Admin authentication</small>
+    </span>
+  </a>
 
-      .form-signin input[type="password"] {
-        margin-bottom: 10px;
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container py-3">
-      <header>
-        <div
-          class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom"
-        >
-          <a
-            href="#"
-            class="d-flex align-items-center link-body-emphasis text-decoration-none"
-          >
-            <span class="fs-4">Login Page</span>
-          </a>
-          <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
-            <a
-              class="me-3 py-2 link-body-emphasis text-decoration-none"
-              href="/admin"
-              >Home</a
-            >
-          </nav>
-        </div>
-      </header>
+  <nav class="nav-links">
+    <a href="{{ url_for('student') }}" class="nav-link">Student Portal</a>
+    <a href="{{ url_for('index') }}" class="nav-link">Back to Home</a>
+  </nav>
+</header>
+
+<main class="auth-shell">
+  <section class="auth-panel">
+    <div>
+      <p class="eyebrow">Secure workspace</p>
+      <h1>Modern admin access for exam seating operations.</h1>
+      <p>
+        Sign in to manage uploads, configure classrooms, generate seating plans,
+        and verify the final student-facing seat details from one place.
+      </p>
     </div>
 
-    <div
-      class="form-container d-flex justify-content-center align-items-center"
-    >
-      <div class="form-signin border border-2 border-grey m-3">
-        <form method="POST" action="{{ url_for('login') }}">
-          <!-- <img class="mb-4" src="" alt="" width="72" height="57"> -->
-          <h1 class="h3 mb-3 fw-normal">Admin Login</h1>
-          <div class="form-floating">
-            <input
-              type="text"
-              class="form-control"
-              id="username"
-              name="username"
-              placeholder="Username"
-              required
-              autocomplete="username"
-            />
-            <label for="username">Username</label>
+    <div class="auth-panel-grid">
+      <div class="mini-stat">
+        <strong>Clean workflow</strong>
+        <span>Upload data, attach timetables, and generate seats with less friction.</span>
+      </div>
+      <div class="mini-stat">
+        <strong>Validation built in</strong>
+        <span>Registration rules stay intact while the UI explains issues clearly.</span>
+      </div>
+      <div class="mini-stat">
+        <strong>Student-ready output</strong>
+        <span>Publish readable seating plans and lookup details faster.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="auth-forms">
+    <div class="auth-grid">
+      <article class="auth-card">
+        <div class="section-heading">
+          <p class="eyebrow">Login</p>
+          <h2>Admin Sign In</h2>
+          <p class="muted-text">Use your admin credentials to continue.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}" class="form-stack">
+          <div class="form-group">
+            <label class="field-label" for="username">Username</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                  <path d="M5 20a7 7 0 0 1 14 0" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                class="input-control"
+                id="username"
+                name="username"
+                placeholder="Enter username"
+                required
+                autocomplete="username"
+              />
+            </div>
           </div>
-          <div class="form-floating">
-            <input
-              type="password"
-              class="form-control"
-              id="password"
-              name="password"
-              placeholder="Password"
-              required
-              autocomplete="current-password"
-            />
-            <label for="password">Password</label>
+
+          <div class="form-group">
+            <label class="field-label" for="password">Password</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                class="input-control"
+                id="password"
+                name="password"
+                placeholder="Enter password"
+                required
+                autocomplete="current-password"
+              />
+            </div>
           </div>
-          <div class="form-check text-start my-3">
+
+          <label class="checkbox-row" for="login-remember">
             <input
-              class="form-check-input"
               type="checkbox"
               value="remember-me"
               id="login-remember"
             />
-            <label class="form-check-label" for="login-remember">
-              Remember me
-            </label>
-          </div>
-          <button class="btn btn-primary w-100 py-2" type="submit">
-            Sign in
+            <span>Remember this device</span>
+          </label>
+
+          <button class="button button-primary button-block" type="submit">
+            Sign In
           </button>
         </form>
-        {% with messages = get_flashed_messages(category_filter=['login-error'])
-        %} {% if messages %}
-        <div class="alert alert-danger mt-3">
-          <ul class="list-unstyled mb-0">
-            {% for message in messages %}
-            <li>{{ message }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %} {% endwith %}
-      </div>
 
-      <div class="form-signin border border-2 border-grey">
+        {% with messages = get_flashed_messages(category_filter=['login-error']) %}
+        {% if messages %}
+        <div class="alert-stack">
+          {% for message in messages %}
+          <div class="alert alert-danger">
+            <strong>Login failed</strong>
+            <p>{{ message }}</p>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </article>
+
+      <article class="auth-card">
+        <div class="section-heading">
+          <p class="eyebrow">Registration</p>
+          <h2>Create Admin Account</h2>
+          <p class="muted-text">
+            Register with the existing username and password policy.
+          </p>
+        </div>
+
         <form
           id="signup-form"
           method="POST"
           action="{{ url_for('register') }}"
+          class="form-stack"
         >
-          <!-- <img class="mb-4" src="" alt="" width="72" height="57"> -->
-          <h1 class="h3 mb-3 fw-normal">Admin Sign-Up</h1>
-          <div class="form-floating">
-            <input
-              type="text"
-              class="form-control"
-              name="username"
-              id="username-field"
-              placeholder="Username"
-              required
-              autocomplete="username"
-              pattern="^JEC\d{3}$"
-              title="Username must start with JEC and end with 3 numbers, for example JEC123."
-            />
-            <label for="username-field">Username</label>
+          <div class="form-group">
+            <label class="field-label" for="username-field">Username</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                  <path d="M5 20a7 7 0 0 1 14 0" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                class="input-control"
+                name="username"
+                id="username-field"
+                placeholder="Example: JEC123"
+                required
+                autocomplete="username"
+                pattern="^JEC\d{3}$"
+                title="Username must start with JEC and end with 3 numbers, for example JEC123."
+              />
+            </div>
+            <p class="helper-text">Format: JEC followed by exactly 3 numbers.</p>
           </div>
-          <div class="form-floating">
-            <input
-              type="password"
-              class="form-control"
-              name="password"
-              id="password-field"
-              placeholder="Password"
-              required
-              autocomplete="new-password"
-              minlength="8"
-            />
-            <label for="password-field">Password</label>
+
+          <div class="form-group">
+            <label class="field-label" for="password-field">Password</label>
+            <div class="input-shell">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <rect x="5" y="11" width="14" height="9" rx="2" />
+                  <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                class="input-control"
+                name="password"
+                id="password-field"
+                placeholder="Create password"
+                required
+                autocomplete="new-password"
+                minlength="8"
+              />
+            </div>
+            <p class="helper-text">
+              Use at least 8 characters and combine 3 strength criteria.
+            </p>
           </div>
-          <div class="form-check text-start my-3">
+
+          <label class="checkbox-row" for="signup-remember">
             <input
-              class="form-check-input"
               type="checkbox"
               value="remember-me"
               id="signup-remember"
             />
-            <label class="form-check-label" for="signup-remember">
-              Remember me
-            </label>
-          </div>
-          <button class="btn btn-primary w-100 py-2 mb-2" type="submit">
-            Sign Up
+            <span>Remember this device</span>
+          </label>
+
+          <button class="button button-secondary button-block" type="submit">
+            Create Account
           </button>
         </form>
-        {% with messages = get_flashed_messages(with_categories=true) %} {% if
-        messages %} {% for category, message in messages %} {% if category in
-        ['registration-error', 'registration-success'] %}
-        <div
-          class="alert {% if category == 'registration-success' %}alert-success{% else %}alert-danger{% endif %} mt-3"
-        >
-          <ul class="list-unstyled mb-0">
-            <li>{{ message }}</li>
-          </ul>
-        </div>
-        {% endif %} {% endfor %} {% endif %} {% endwith %}
-      </div>
-    </div>
 
-    <script src="{{ url_for('static', filename='login.js') }}"></script>
-  </body>
-</html>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alert-stack">
+          {% for category, message in messages %}
+          {% if category in ['registration-error', 'registration-success'] %}
+          <div class="alert {% if category == 'registration-success' %}alert-success{% else %}alert-danger{% endif %}">
+            <strong>
+              {% if category == 'registration-success' %}
+              Registration complete
+              {% else %}
+              Registration issue
+              {% endif %}
+            </strong>
+            <p>{{ message }}</p>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </article>
+    </div>
+  </section>
+</main>
+
+<footer class="footer-section site-footer">
+  <div class="footer-bar surface-card">
+    <span>Protected admin entry</span>
+    <span>Only UI was upgraded. Existing backend routes and form posts remain intact.</span>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='login.js') }}"></script>
+{% endblock %}

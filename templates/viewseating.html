@@ -1,84 +1,218 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Seating</title>
-    <!-- Bootstrap CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
-      crossorigin="anonymous"
-    />
-  </head>
-  <body>
-    <div class="container py-3">
-      <header>
-        <div
-          class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom"
-        >
-          <a
-            href="/admin"
-            class="d-flex align-items-center link-body-emphasis text-decoration-none"
-          >
-            <span class="fs-4">Seat Arrangement</span>
-          </a>
-          <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
-            <a
-              class="me-3 py-2 link-body-emphasis text-decoration-none"
-              href="/admin"
-              >Home</a
-            >
-          </nav>
-        </div>
-      </header>
+{% extends "admin_base.html" %}
+
+{% set page_title = "View Seating" %}
+{% set page_subtitle = "Browse generated seating plans by exam date, then filter rooms instantly from the same page." %}
+{% set active_page = "seating" %}
+
+{% block admin_content %}
+<section class="seating-layout">
+  <div class="selection-card seating-toolbar">
+    <div class="selection-summary">
       <div>
-        <h5>Choose the Date:</h5>
-        <div id="buttons" class="container py-3"></div>
-        <div id="tables" class="container"></div>
+        <p class="eyebrow">Generated seating</p>
+        <h2>Open a date to inspect the room-by-room arrangement.</h2>
+        <p class="muted-text">
+          The viewer uses the existing `/viewseating/&lt;date&gt;` route and renders the returned room data in a more readable layout.
+        </p>
+      </div>
+      <div class="metric-pill">
+        <span>Available dates</span>
+        <strong id="dateCount">0</strong>
       </div>
     </div>
-    <script>
-      var dates = {{dates}};
-      var buttonsContainer = document.getElementById('buttons');
-      var tablesContainer = document.getElementById('tables');
-      // Create buttons for each date
-      for (var i = 0; i < dates.length; i++) {
-        var button = document.createElement('button');
-        button.className = 'btn btn-primary mb-2 me-2';
-        button.innerText = dates[i];
-        button.addEventListener('click', function() {
-          table(this.innerText);
-        });
-        buttonsContainer.appendChild(button);
+
+    <div class="date-list" id="dateButtons"></div>
+
+    <div class="seating-summary">
+      <input
+        id="roomFilter"
+        class="filter-input"
+        type="search"
+        placeholder="Filter by classroom name"
+      />
+      <div class="badge badge-neutral" id="selectedDateBadge">Select a date</div>
+    </div>
+  </div>
+
+  <div class="selection-card seating-summary">
+    <div>
+      <p class="eyebrow">Current view</p>
+      <h2 id="seatingHeading">No date selected yet</h2>
+    </div>
+    <div class="badge badge-primary" id="roomCountBadge">0 rooms</div>
+  </div>
+
+  <div id="seatingTables" class="seating-grid"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const dates = {{ dates }};
+  const seatUrlTemplate = "{{ url_for('viewseating1', name='__DATE__') }}";
+  const dateButtons = document.getElementById("dateButtons");
+  const seatingTables = document.getElementById("seatingTables");
+  const roomFilter = document.getElementById("roomFilter");
+  const seatingHeading = document.getElementById("seatingHeading");
+  const roomCountBadge = document.getElementById("roomCountBadge");
+  const selectedDateBadge = document.getElementById("selectedDateBadge");
+  const dateCount = document.getElementById("dateCount");
+
+  const state = {
+    activeDate: null,
+    rooms: [],
+  };
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderDateButtons() {
+    dateCount.textContent = String(dates.length);
+    dateButtons.innerHTML = "";
+
+    dates.forEach((date) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "date-pill" + (state.activeDate === date ? " is-active" : "");
+      button.textContent = date;
+      button.addEventListener("click", () => loadDate(date));
+      dateButtons.appendChild(button);
+    });
+  }
+
+  function renderColumn(label, values) {
+    const rows = values.length
+      ? values
+      : ["-"];
+
+    return `
+      <div class="seat-column">
+        <h3>${label}</h3>
+        <table class="seat-table">
+          <thead>
+            <tr>
+              <th>Seat</th>
+              <th>Roll Number</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map((value, index) => {
+                const seatNumber = value === "-" ? "-" : `${label}${index + 1}`;
+                const renderedValue = value === "-" ? "-" : escapeHtml(value);
+                return `<tr><td>${seatNumber}</td><td>${renderedValue}</td></tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function renderRooms() {
+    const query = roomFilter.value.trim().toLowerCase();
+    const visibleRooms = state.rooms.filter((room) =>
+      !query || room.class_name.toLowerCase().includes(query)
+    );
+
+    selectedDateBadge.textContent = state.activeDate || "Select a date";
+    seatingHeading.textContent = state.activeDate
+      ? `Seating for ${state.activeDate}`
+      : "No date selected yet";
+    roomCountBadge.textContent = `${visibleRooms.length} rooms`;
+
+    if (!state.activeDate) {
+      seatingTables.innerHTML = `
+        <article class="empty-card">
+          <p class="eyebrow">Waiting</p>
+          <h2>Choose a date to load the generated seating layout.</h2>
+          <p class="muted-text">Every date button above fetches the existing seating JSON for that exam day.</p>
+        </article>
+      `;
+      return;
+    }
+
+    if (!visibleRooms.length) {
+      seatingTables.innerHTML = `
+        <article class="empty-card">
+          <p class="eyebrow">No rooms found</p>
+          <h2>No classroom matches your current filter.</h2>
+          <p class="muted-text">Clear the search box or select another date.</p>
+        </article>
+      `;
+      return;
+    }
+
+    seatingTables.innerHTML = visibleRooms
+      .map((room) => {
+        const seatsA = Array.isArray(room.a) ? room.a : [];
+        const seatsB = Array.isArray(room.b) ? room.b : [];
+        const seatTotal = seatsA.length + seatsB.length;
+
+        return `
+          <article class="seat-room-card">
+            <div class="room-meta">
+              <div>
+                <p class="eyebrow">Classroom</p>
+                <h3>${escapeHtml(room.class_name)}</h3>
+              </div>
+              <span class="badge badge-primary">${seatTotal} occupied seats</span>
+            </div>
+            <div class="seat-columns">
+              ${renderColumn("A", seatsA)}
+              ${renderColumn("B", seatsB)}
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  async function loadDate(date) {
+    state.activeDate = date;
+    state.rooms = [];
+    renderDateButtons();
+    seatingTables.innerHTML = `
+      <article class="empty-card">
+        <p class="eyebrow">Loading</p>
+        <h2>Fetching seating data for ${date}...</h2>
+      </article>
+    `;
+
+    try {
+      const response = await fetch(
+        seatUrlTemplate.replace("__DATE__", encodeURIComponent(date))
+      );
+      if (!response.ok) {
+        throw new Error("Failed to load seating data.");
       }
-      function table(name) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', 'viewseating/' + name, true);
-        xhr.onload = function() {
-          if (xhr.status == 200) {
-            var out = '';
-            var json = JSON.parse(xhr.responseText);
-            for (var i = 0; i < json.length; i++) {
-              var classData = json[i];
-              if (classData.a || classData.b) {
-                var maxRows = Math.max(classData.a ? classData.a.length : 0, classData.b ? classData.b.length : 0);
-                out += '<table class="table table-bordered">';
-                out += '<tr><th colspan="4">' + classData.class_name + '</th></tr>';
-                out += '<tr><th>SeatNo</th><th>RollNo</th><th>SeatNo</th><th>RollNo</th></tr>';
-                for (var z = 0; z < maxRows; z++) {
-                  var aData = classData.a && z < classData.a.length ? classData.a[z] : '-';
-                  var bData = classData.b && z < classData.b.length ? classData.b[z] : '-';
-                  out += '<tr><td>A' + (z + 1) + '</td><td>' + aData + '</td>';
-                  out += '<td>B' + (z + 1) + '</td><td>' + bData + '</td></tr>';
-                }
-                out += '</table>';
-              }
-            }
-            tablesContainer.innerHTML = out;
-          }
-        };
-        xhr.send();
-      }
-    </script>
-  </body>
-</html>
+
+      state.rooms = await response.json();
+      renderDateButtons();
+      renderRooms();
+    } catch (error) {
+      seatingTables.innerHTML = `
+        <article class="empty-card">
+          <p class="eyebrow">Error</p>
+          <h2>Unable to load the seating layout for ${date}.</h2>
+          <p class="muted-text">${escapeHtml(error.message)}</p>
+        </article>
+      `;
+    }
+  }
+
+  roomFilter.addEventListener("input", renderRooms);
+  renderDateButtons();
+  renderRooms();
+
+  if (dates.length) {
+    loadDate(dates[0]);
+  }
+</script>
+{% endblock %}

@@ -1,43 +1,98 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <title>Reset Page</title>
-</head>
-<body>
-    <div class="container py-3">
-        <header>
-          <div
-            class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom"
-          >
-            <a
-              href="#"
-              class="d-flex align-items-center link-body-emphasis text-decoration-none"
-            >
-              <span class="fs-4">Reset Page</span>
-            </a>
-            <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
-              <a
-                class="me-3 py-2 link-body-emphasis text-decoration-none"
-                href="/admin"
-                >Home</a
-              >
-            </nav>
-          </div>
-        </header>
-      </div>
-    <div class="container">
-        <ul class="list-group mt-4">
-            <li class="list-group-item"><a class="text-decoration-none" href="/reset/collections">Delete Student Data</a></li>
-            <li class="list-group-item"><a class="text-decoration-none" href="/reset/static">Reset Static</a></li>
-            <li class="list-group-item"><a class="text-decoration-none" href="/reset/uploads">Reset Uploads</a></li>
-            <li class="list-group-item"><a class="text-decoration-none" href="/reset/dates">Reset Dates</a></li>
-            <li class="list-group-item"><a class="text-decoration-none" href="/reset/users">Reset Users</a></li>
-        </ul>
-        {% if message %}
-        <p class="mt-4">{{ message }}</p>
-        {% endif %}
+{% extends "admin_base.html" %}
+
+{% set page_title = "Reset Tools" %}
+{% set page_subtitle = "Run maintenance and cleanup actions from a clearer, safer reset workspace." %}
+{% set active_page = "reset" %}
+
+{% block admin_content %}
+<section class="section-stack">
+  <div class="selection-card">
+    <div class="section-heading">
+      <p class="eyebrow">Maintenance</p>
+      <h2>Use reset actions carefully.</h2>
+      <p class="muted-text">
+        These routes trigger real cleanup operations in the existing backend. Only run them when you intend to clear data or reset generated artifacts.
+      </p>
+      <p class="reset-note">Some actions remove records or generated files permanently.</p>
     </div>
-</body>
-</html>
+    {% if message %}
+    <div class="alert alert-success">
+      <strong>Maintenance result</strong>
+      <p>{{ message }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="reset-grid">
+    <article class="reset-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Database</p>
+          <h3>Delete Student Data</h3>
+        </div>
+        <span class="badge badge-danger">Destructive</span>
+      </div>
+      <p class="card-copy">Drops the student collection and clears stored student records.</p>
+      <a href="{{ url_for('reset_collections') }}" class="button button-danger"
+        >Delete Student Data</a
+      >
+    </article>
+
+    <article class="reset-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Generated Files</p>
+          <h3>Reset Static Seating Files</h3>
+        </div>
+        <span class="badge badge-warning">Cleanup</span>
+      </div>
+      <p class="card-copy">Removes generated `stuarrange` output files and resets the seating state.</p>
+      <a href="{{ url_for('reset_static') }}" class="button button-secondary"
+        >Reset Static Files</a
+      >
+    </article>
+
+    <article class="reset-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Uploads</p>
+          <h3>Clear Uploaded Workbooks</h3>
+        </div>
+        <span class="badge badge-warning">Cleanup</span>
+      </div>
+      <p class="card-copy">Deletes files stored in the uploads directory while leaving templates untouched.</p>
+      <a href="{{ url_for('reset_uploads') }}" class="button button-secondary"
+        >Reset Uploads</a
+      >
+    </article>
+
+    <article class="reset-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Dates</p>
+          <h3>Reset Exam Dates</h3>
+        </div>
+        <span class="badge badge-warning">Cleanup</span>
+      </div>
+      <p class="card-copy">Clears the stored list of exam dates used by the seating viewer and generator.</p>
+      <a href="{{ url_for('reset_dates') }}" class="button button-secondary"
+        >Reset Dates</a
+      >
+    </article>
+
+    <article class="reset-card">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">Users</p>
+          <h3>Delete Admin Users</h3>
+        </div>
+        <span class="badge badge-danger">Destructive</span>
+      </div>
+      <p class="card-copy">Drops the user collection and removes every registered admin account.</p>
+      <a href="{{ url_for('reset_users') }}" class="button button-danger"
+        >Delete Users</a
+      >
+    </article>
+  </div>
+</section>
+{% endblock %}
