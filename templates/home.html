@@ -19,14 +19,17 @@
 </header>
 
 <main>
-  <section class="landing-hero">
+  <section
+    class="landing-hero"
+    style="--hero-image: url('{{ url_for('static', filename='book.jpg') }}')"
+  >
     <div class="hero-copy">
       <p class="eyebrow">Smarter Exam Operations</p>
-      <h1>Seat every student with clarity, speed, and less room for malpractice.</h1>
+      <h1>Smart Exam Seat Arrangement</h1>
       <p>
-        A streamlined system for admins to upload student records, attach exam
-        timetables, choose available rooms, generate seating plans, and publish
-        seat details for students in one clean workflow.
+        Organize students, rooms, and seating plans with clarity. Generate
+        structured seating layouts quickly and reduce manual planning errors for
+        schools, colleges, and examination offices.
       </p>
 
       <div class="button-row">
@@ -43,31 +46,19 @@
         <span>Room-aware seat generation</span>
         <span>Student self-service lookup</span>
       </div>
-    </div>
 
-    <div class="hero-panel surface-card">
-      <div class="hero-panel-image">
-        <img
-          src="{{ url_for('static', filename='book.jpg') }}"
-          alt="Seat allocation overview"
-        />
-      </div>
-      <div class="hero-panel-grid">
-        <div class="mini-stat">
+      <div class="hero-metrics">
+        <div class="hero-metric">
           <strong>Admin-ready</strong>
-          <span>Manage uploads, rooms, and seating from one dashboard.</span>
+          <span>Uploads, timetables, rooms, and seating in one workspace.</span>
         </div>
-        <div class="mini-stat">
+        <div class="hero-metric">
           <strong>Student-ready</strong>
-          <span>Students can check date, room, and seat details quickly.</span>
+          <span>Fast roll-number lookup for exam room and seat details.</span>
         </div>
-        <div class="mini-stat">
-          <strong>Anti-cheating</strong>
-          <span>Built around subject separation heuristics per exam date.</span>
-        </div>
-        <div class="mini-stat">
-          <strong>Workflow-led</strong>
-          <span>From data upload to final seating in a guided sequence.</span>
+        <div class="hero-metric">
+          <strong>Exam-focused</strong>
+          <span>Designed around clear room plans and subject separation.</span>
         </div>
       </div>
     </div>
@@ -78,8 +69,8 @@
       <p class="eyebrow">Why this system works</p>
       <h2>Purpose-built for exam teams that need a polished operational flow.</h2>
       <p class="muted-text">
-        The interface is organized around the same steps your staff already follows,
-        but presented in a faster, cleaner, and easier-to-learn experience.
+        The system follows the natural rhythm of exam planning: prepare student
+        records, attach timetables, choose rooms, and publish seating details.
       </p>
     </div>
 
@@ -95,7 +86,7 @@
         <h3>Structured Admin Workflow</h3>
         <p class="card-copy">
           Upload student workbooks, map timetables, select classrooms, and generate seating
-          in an order that matches the backend logic exactly.
+          in a clear sequence built for examination offices.
         </p>
       </article>
 
@@ -186,7 +177,7 @@
 <footer class="footer-section site-footer">
   <div class="footer-bar surface-card">
     <span>Student Seat Allocation System</span>
-    <span>Modernized workflow for uploads, allocation, and seat lookup.</span>
+    <span>Built for organized uploads, reliable allocation, and simple seat lookup.</span>
   </div>
 </footer>
 {% endblock %}

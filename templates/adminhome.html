@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Admin Dashboard" %}
-{% set page_subtitle = "Run the complete seating workflow with cleaner navigation, clearer actions, and polished status feedback." %}
+{% set page_subtitle = "Organize student data, timetables, classrooms, and seating plans from one focused workspace." %}
 {% set active_page = "dashboard" %}
 
 {% block admin_content %}
@@ -22,8 +22,8 @@
   <p class="eyebrow">Operational Flow</p>
   <h2>Move from uploads to seat generation in four guided steps.</h2>
   <p class="muted-text">
-    Every card below maps to an existing route in the application. The backend
-    behavior stays unchanged; only the dashboard experience has been upgraded.
+    Follow the exam office workflow from student records to final room-by-room
+    seating plans with clear checkpoints along the way.
   </p>
 
   <div class="workflow-steps">
@@ -57,7 +57,7 @@
     </div>
     <p class="card-copy">
       Import second, third, and fourth year student workbooks with section sheet
-      names and the required `rollnum` and `name` columns.
+      names and the required roll number and student name columns.
     </p>
     <img
       src="{{ url_for('static', filename='datascreenshot.jpg') }}"
@@ -96,7 +96,7 @@
         >Upload Timetable</a
       >
       <a href="{{ url_for('view_timetable') }}" class="button button-secondary"
-        >Open Timetable JSON</a
+        >View Timetable Data</a
       >
     </div>
   </article>
@@ -111,7 +111,7 @@
     </div>
     <p class="card-copy">
       Pick the available classrooms and their stored capacities before running the
-      allocation algorithm.
+      seating arrangement.
     </p>
     <img
       src="{{ url_for('static', filename='classscreenshot.jpg') }}"
@@ -135,7 +135,7 @@
     </div>
     <p class="card-copy">
       Run the seating engine and then review the generated arrangement by date
-      using the upgraded seating browser.
+      using the seating browser.
     </p>
     <img
       src="{{ url_for('static', filename='seatingscreenshot.jpg') }}"
@@ -169,7 +169,7 @@
         <div>
           <strong>Upload student data first</strong>
           <p class="muted-text">
-            The timetable mapping depends on student records already existing in the database.
+            Timetable mapping works best after student records have been loaded.
           </p>
         </div>
       </div>
@@ -178,7 +178,7 @@
         <div>
           <strong>Keep Excel sheet names consistent</strong>
           <p class="muted-text">
-            The backend uses sheet names to link student groups with timetable groups.
+            Sheet names connect student groups with the matching timetable groups.
           </p>
         </div>
       </div>
@@ -187,7 +187,7 @@
         <div>
           <strong>Choose rooms before generation</strong>
           <p class="muted-text">
-            The seat generator reads the selected classroom capacities from the stored room list.
+            Selected classroom capacities shape the final seating arrangement.
           </p>
         </div>
       </div>
@@ -200,8 +200,8 @@
       <h2>Data and maintenance links</h2>
     </div>
     <div class="utility-links">
-      <a href="{{ url_for('view_data') }}" class="utility-link">Student JSON</a>
-      <a href="{{ url_for('view_timetable') }}" class="utility-link">Timetable JSON</a>
+      <a href="{{ url_for('view_data') }}" class="utility-link">Student Data Export</a>
+      <a href="{{ url_for('view_timetable') }}" class="utility-link">Timetable Data Export</a>
       <a href="{{ url_for('reset') }}" class="utility-link">Reset Tools</a>
       <a href="{{ url_for('student') }}" class="utility-link">Student Portal</a>
     </div>

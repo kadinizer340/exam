@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Class Selection" %}
-{% set page_subtitle = "Choose the classrooms available for the current seating run and pass them into the existing generation workflow." %}
+{% set page_subtitle = "Choose the classrooms available for the current exam seating run." %}
 {% set active_page = "classes" %}
 {% set adm_classes = [('ADM 303', 6, 7), ('ADM 304', 8, 3), ('ADM 305', 7, 3), ('ADM 306', 7, 3), ('ADM 307', 7, 3), ('ADM 308', 7, 3), ('ADM 309', 7, 3), ('ADM 310', 7, 3), ('ADM 311', 7, 3)] %}
 {% set east_classes = [('EAB 206', 7, 3), ('EAB 306', 7, 3), ('EAB 401', 8, 3), ('EAB 304', 7, 3), ('EAB 303', 7, 3), ('EAB 104', 7, 3), ('EAB 103', 7, 3), ('EAB 203', 7, 3), ('EAB 204', 7, 3), ('EAB 415', 8, 15), ('EAB 416', 8, 14), ('EAB 310', 7, 3)] %}
@@ -26,8 +26,7 @@
         <p class="eyebrow">Room planning</p>
         <h2>Select every classroom available for the exam session.</h2>
         <p class="muted-text">
-          The backend stores this selection and uses the saved capacities when the
-          seating algorithm runs.
+          The system uses selected rooms and capacities to shape the final seating plan.
         </p>
       </div>
       <div class="metric-pill">

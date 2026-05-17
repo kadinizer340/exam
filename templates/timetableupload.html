@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Upload Timetable" %}
-{% set page_subtitle = "Attach exam schedules for every year group while preserving the current timetable mapping logic." %}
+{% set page_subtitle = "Attach exam schedules for every year group using the timetable format expected by the seating system." %}
 {% set active_page = "upload-timetable" %}
 
 {% block admin_content %}
@@ -29,8 +29,8 @@
       <p class="eyebrow">Timetable Upload</p>
       <h2>Attach exam schedules for each year.</h2>
       <p class="muted-text">
-        Use workbooks whose sheet tabs match the branch-level mapping expected by the
-        backend. Each sheet should contain the columns `date` and `subject`.
+        Use workbooks whose sheet tabs match the branch-level timetable mapping.
+        Each sheet should contain the columns <code>date</code> and <code>subject</code>.
       </p>
     </div>
 
@@ -46,7 +46,7 @@
         <label for="file2" class="dropzone" data-dropzone>
           <strong>Choose second year timetable</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: date, subject</small>
+          <small>Expected columns: <code>date</code>, <code>subject</code></small>
           <input
             type="file"
             class="file-input"
@@ -69,7 +69,7 @@
         <label for="file3" class="dropzone" data-dropzone>
           <strong>Choose third year timetable</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: date, subject</small>
+          <small>Expected columns: <code>date</code>, <code>subject</code></small>
           <input
             type="file"
             class="file-input"
@@ -92,7 +92,7 @@
         <label for="file4" class="dropzone" data-dropzone>
           <strong>Choose fourth year timetable</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: date, subject</small>
+          <small>Expected columns: <code>date</code>, <code>subject</code></small>
           <input
             type="file"
             class="file-input"
@@ -114,13 +114,13 @@
   <aside class="instruction-card">
     <div class="section-heading">
       <p class="eyebrow">Formatting rules</p>
-      <h2>Make the timetable files easy for the backend to read.</h2>
+      <h2>Keep timetable files consistent.</h2>
     </div>
     <ul>
-      <li>Use `.xls` or `.xlsx` only.</li>
-      <li>Each sheet tab should match the branch mapping used in `app.py`, such as `cs` or `me`.</li>
-      <li>Every sheet must contain `date` and `subject` columns exactly.</li>
-      <li>Use real Excel date cells whenever possible so the date conversion logic succeeds.</li>
+      <li>Use <code>.xls</code> or <code>.xlsx</code> only.</li>
+      <li>Each sheet tab should match a branch mapping such as <code>cs</code> or <code>me</code>.</li>
+      <li>Every sheet must contain <code>date</code> and <code>subject</code> columns exactly.</li>
+      <li>Use real Excel date cells whenever possible so exam dates are read correctly.</li>
       <li>The timetable sheets are later mapped back to student sections during seat generation.</li>
     </ul>
   </aside>

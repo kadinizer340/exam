@@ -4,8 +4,16 @@
 <div class="loading-overlay" data-loading-overlay hidden>
   <div class="loading-panel">
     <div class="spinner"></div>
-    <h2>Generating seating plan</h2>
-    <p>Please wait while the allocation engine prepares the latest arrangement.</p>
+    <h2>Preparing seating plan</h2>
+    <p data-loading-message>Please wait while the system prepares the latest room arrangement.</p>
+    <div class="loading-actions" data-loading-actions hidden>
+      <button type="button" class="button button-secondary" data-loading-dismiss>
+        Keep Working
+      </button>
+      <a href="{{ url_for('viewseating') }}" class="button button-primary">
+        View Seating
+      </a>
+    </div>
   </div>
 </div>
 
@@ -22,7 +30,7 @@
     <div class="sidebar-panel">
       <p class="eyebrow">Operations</p>
       <p class="sidebar-copy">
-        Manage uploads, select rooms, and publish seating plans from one place.
+        Manage student records, timetables, room choices, and seating plans from one place.
       </p>
     </div>
 
@@ -74,7 +82,7 @@
     <div class="sidebar-panel sidebar-user">
       <p class="sidebar-label">Signed in</p>
       <strong>{{ session.get('username', 'Administrator') }}</strong>
-      <small>Keep the operational flow moving without leaving the dashboard.</small>
+      <small>Coordinate exam seating with a focused admin workspace.</small>
     </div>
 
     <div class="sidebar-actions">
@@ -95,12 +103,12 @@
         <p class="eyebrow">Student Seat Allocation System</p>
         <h1>{{ page_title or "Admin" }}</h1>
         <p class="page-intro">
-          {{ page_subtitle or "Run the end-to-end exam seating workflow from this panel." }}
+          {{ page_subtitle or "Coordinate the complete exam seating workflow from this workspace." }}
         </p>
       </div>
       <div class="topbar-badges">
-        <span class="badge badge-neutral">Light workspace</span>
-        <span class="badge badge-primary">Live workflow</span>
+        <span class="badge badge-neutral">Exam office</span>
+        <span class="badge badge-primary">Ready to plan</span>
       </div>
     </header>
 

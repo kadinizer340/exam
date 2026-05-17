@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Upload Student Data" %}
-{% set page_subtitle = "Import student workbooks for second, third, and fourth year groups without changing the backend upload format." %}
+{% set page_subtitle = "Import student workbooks for second, third, and fourth year groups using the required exam data format." %}
 {% set active_page = "upload-data" %}
 
 {% block admin_content %}
@@ -29,8 +29,8 @@
       <p class="eyebrow">Workbook Upload</p>
       <h2>Attach student class lists by year.</h2>
       <p class="muted-text">
-        The backend still expects Excel files with sheet names representing the
-        class or section and columns named exactly `rollnum` and `name`.
+        Use Excel files with sheet names representing the class or section and
+        columns named exactly <code>rollnum</code> and <code>name</code>.
       </p>
     </div>
 
@@ -46,7 +46,7 @@
         <label for="file2" class="dropzone" data-dropzone>
           <strong>Choose second year file</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: rollnum, name</small>
+          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
           <input
             type="file"
             class="file-input"
@@ -69,7 +69,7 @@
         <label for="file3" class="dropzone" data-dropzone>
           <strong>Choose third year file</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: rollnum, name</small>
+          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
           <input
             type="file"
             class="file-input"
@@ -92,7 +92,7 @@
         <label for="file4" class="dropzone" data-dropzone>
           <strong>Choose fourth year file</strong>
           <small data-file-name>No file selected yet</small>
-          <small>Expected columns: rollnum, name</small>
+          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
           <input
             type="file"
             class="file-input"
@@ -117,10 +117,10 @@
       <h2>Prepare the Excel files correctly.</h2>
     </div>
     <ul>
-      <li>Use `.xls` or `.xlsx` only.</li>
-      <li>Every sheet tab should represent a class or section such as `csa` or `ec`.</li>
-      <li>Each sheet must contain `rollnum` and `name` columns exactly.</li>
-      <li>Keep `rollnum` numeric so lookup and seat generation continue to work.</li>
+      <li>Use <code>.xls</code> or <code>.xlsx</code> only.</li>
+      <li>Every sheet tab should represent a class or section such as <code>csa</code> or <code>ec</code>.</li>
+      <li>Each sheet must contain <code>rollnum</code> and <code>name</code> columns exactly.</li>
+      <li>Keep <code>rollnum</code> numeric so lookup and seat generation continue to work.</li>
       <li>After upload, the system stores each sheet name as the student group identifier.</li>
     </ul>
   </aside>

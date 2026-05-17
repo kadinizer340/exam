@@ -11,7 +11,7 @@
       <p class="eyebrow">Maintenance</p>
       <h2>Use reset actions carefully.</h2>
       <p class="muted-text">
-        These routes trigger real cleanup operations in the existing backend. Only run them when you intend to clear data or reset generated artifacts.
+        These actions clear records, uploaded files, generated seating plans, or exam dates used by the system.
       </p>
       <p class="reset-note">Some actions remove records or generated files permanently.</p>
     </div>
@@ -46,7 +46,7 @@
         </div>
         <span class="badge badge-warning">Cleanup</span>
       </div>
-      <p class="card-copy">Removes generated `stuarrange` output files and resets the seating state.</p>
+      <p class="card-copy">Removes generated seating output files and resets the seating state.</p>
       <a href="{{ url_for('reset_static') }}" class="button button-secondary"
         >Reset Static Files</a
       >
@@ -60,7 +60,7 @@
         </div>
         <span class="badge badge-warning">Cleanup</span>
       </div>
-      <p class="card-copy">Deletes files stored in the uploads directory while leaving templates untouched.</p>
+      <p class="card-copy">Deletes uploaded workbooks from the exam upload folder.</p>
       <a href="{{ url_for('reset_uploads') }}" class="button button-secondary"
         >Reset Uploads</a
       >

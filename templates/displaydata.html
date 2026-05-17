@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Uploaded Data Preview" %}
-{% set page_subtitle = "Inspect the latest in-memory upload objects rendered directly from the existing route." %}
+{% set page_subtitle = "Review the latest uploaded workbook data before continuing with timetable setup." %}
 {% set active_page = "upload-data" %}
 
 {% block admin_content %}
@@ -9,10 +9,10 @@
   <div class="selection-card">
     <div class="preview-header">
       <div>
-        <p class="eyebrow">Raw Preview</p>
-        <h2>Current upload payloads</h2>
+        <p class="eyebrow">Workbook Preview</p>
+        <h2>Current uploaded data</h2>
         <p class="muted-text">
-          This page shows the current workbook objects exactly as the upload route is holding them.
+          Check the imported sheet groups for each year before moving to the next step.
         </p>
       </div>
       <div class="button-row">
@@ -33,7 +33,7 @@
       <div class="card-head">
         <div>
           <p class="eyebrow">Second Year</p>
-          <h3>Workbook JSON</h3>
+          <h3>Structured workbook data</h3>
         </div>
       </div>
       <pre class="json-block">{{ data2|tojson(indent=2) }}</pre>
@@ -45,7 +45,7 @@
       <div class="card-head">
         <div>
           <p class="eyebrow">Third Year</p>
-          <h3>Workbook JSON</h3>
+          <h3>Structured workbook data</h3>
         </div>
       </div>
       <pre class="json-block">{{ data3|tojson(indent=2) }}</pre>
@@ -57,7 +57,7 @@
       <div class="card-head">
         <div>
           <p class="eyebrow">Fourth Year</p>
-          <h3>Workbook JSON</h3>
+          <h3>Structured workbook data</h3>
         </div>
       </div>
       <pre class="json-block">{{ data4|tojson(indent=2) }}</pre>
@@ -67,9 +67,9 @@
   {% else %}
   <div class="empty-card">
     <p class="eyebrow">Nothing loaded</p>
-    <h2>No upload data is available in the current session yet.</h2>
+    <h2>No student workbook has been uploaded yet.</h2>
     <p class="muted-text">
-      Upload a student workbook first, then return here to preview the in-memory data structure.
+      Upload a student workbook first, then return here to preview the imported data.
     </p>
   </div>
   {% endif %}

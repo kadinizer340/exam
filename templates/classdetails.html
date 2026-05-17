@@ -17,8 +17,8 @@
         <p class="eyebrow">Selection saved</p>
         <h2>Your classroom list is ready for generation.</h2>
         <p class="muted-text">
-          The selected rooms have been stored in the existing `stuarrange.txt` flow.
-          You can generate seating immediately or go back and adjust the selection.
+          The selected rooms and capacities are ready for the seating plan. You
+          can generate seating immediately or go back and adjust the selection.
         </p>
       </div>
       <div class="confirmation-metrics">
@@ -45,7 +45,7 @@
         <span class="badge badge-neutral">{{ classroom['column'] * classroom['rows'] }} seats</span>
       </div>
       <p class="card-copy">
-        Stored layout: {{ classroom['column'] }} columns by {{ classroom['rows'] }} rows.
+        Layout: {{ classroom['column'] }} columns by {{ classroom['rows'] }} rows.
       </p>
     </article>
     {% endfor %}
