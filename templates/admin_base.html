@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+{% endblock %}
+
 {% block body %}
 <div class="loading-overlay" data-loading-overlay hidden>
   <div class="loading-panel">
@@ -17,28 +26,27 @@
   </div>
 </div>
 
-<div class="admin-shell">
+<div class="admin-shell admin-app-shell">
   <aside class="admin-sidebar">
-    <a href="{{ url_for('admin') }}" class="brand brand-stack">
-      <span class="brand-mark">S</span>
-      <span>
-        <strong>Seat Allocation</strong>
-        <small>Admin workspace</small>
+    <a href="{{ url_for('admin') }}" class="admin-sidebar-brand">
+      <span class="admin-brand-logo" aria-hidden="true">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="" />
       </span>
+      <div>
+        <strong>Exam Seats</strong>
+        <small>Admin Console</small>
+      </div>
     </a>
 
-    <div class="sidebar-panel">
-      <p class="eyebrow">Operations</p>
-      <p class="sidebar-copy">
-        Manage student records, timetables, room choices, and seating plans from one place.
-      </p>
-    </div>
-
     <nav class="sidebar-nav">
+      <p class="sidebar-section-label">Manage</p>
       <a
         href="{{ url_for('admin') }}"
         class="sidebar-link {% if active_page == 'dashboard' %}is-active{% endif %}"
       >
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z"/></svg>
+        </span>
         <span class="sidebar-link-text">Dashboard</span>
         <small>Overview</small>
       </a>
@@ -46,69 +54,87 @@
         href="{{ url_for('uploadpage') }}"
         class="sidebar-link {% if active_page == 'upload-data' %}is-active{% endif %}"
       >
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M6 3h9l3 3v15H6z"/><path d="M9 13h6M9 17h6M14 3v4h4"/></svg>
+        </span>
         <span class="sidebar-link-text">Student Data</span>
-        <small>Upload workbooks</small>
+        <small>Records</small>
       </a>
       <a
         href="{{ url_for('timetable') }}"
         class="sidebar-link {% if active_page == 'upload-timetable' %}is-active{% endif %}"
       >
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 2v4M16 2v4M5 9h14M8 13h3M13 13h3M8 17h3"/></svg>
+        </span>
         <span class="sidebar-link-text">Timetable</span>
-        <small>Attach exam schedules</small>
+        <small>Schedules</small>
       </a>
       <a
         href="{{ url_for('classchoose') }}"
         class="sidebar-link {% if active_page == 'classes' %}is-active{% endif %}"
       >
-        <span class="sidebar-link-text">Class Selection</span>
-        <small>Choose available rooms</small>
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h2M12 10h2M16 10h2M8 14h2M12 14h2M16 14h2"/></svg>
+        </span>
+        <span class="sidebar-link-text">Classrooms</span>
+        <small>Capacity</small>
       </a>
       <a
         href="{{ url_for('viewseating') }}"
         class="sidebar-link {% if active_page == 'seating' %}is-active{% endif %}"
       >
-        <span class="sidebar-link-text">View Seating</span>
-        <small>Browse generated layouts</small>
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 9h3v3H8zM13 9h3v3h-3zM8 14h3v3H8zM13 14h3v3h-3z"/></svg>
+        </span>
+        <span class="sidebar-link-text">Seating Plans</span>
+        <small>Generated layouts</small>
       </a>
       <a
         href="{{ url_for('reset') }}"
         class="sidebar-link {% if active_page == 'reset' %}is-active{% endif %}"
       >
-        <span class="sidebar-link-text">Reset Tools</span>
-        <small>Maintenance actions</small>
+        <span class="sidebar-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M6 7h12M9 7V5h6v2M8 10v9M12 10v9M16 10v9M7 7l1 14h8l1-14"/></svg>
+        </span>
+        <span class="sidebar-link-text">Reset</span>
+        <small>Tools</small>
       </a>
     </nav>
 
-    <div class="sidebar-panel sidebar-user">
-      <p class="sidebar-label">Signed in</p>
-      <strong>{{ session.get('username', 'Administrator') }}</strong>
-      <small>Coordinate exam seating with a focused admin workspace.</small>
-    </div>
-
-    <div class="sidebar-actions">
-      <a href="{{ url_for('index') }}" class="button button-secondary button-block"
-        >Public landing</a
-      >
-      <a
-        href="{{ url_for('student') }}"
-        class="button button-ghost button-block"
-        >Student portal</a
-      >
+    <div class="sidebar-footer">
+      <div>
+        <span class="sidebar-avatar">{{ session.get('username', 'A')[:1] }}</span>
+        <span>
+          <strong>{{ session.get('username', 'Administrator') }}</strong>
+          <small>Administrator</small>
+        </span>
+      </div>
+      <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('student') }}">Student Lookup</a>
+      </nav>
     </div>
   </aside>
 
   <main class="admin-main">
-    <header class="admin-topbar">
-      <div>
-        <p class="eyebrow">Student Seat Allocation System</p>
-        <h1>{{ page_title or "Admin" }}</h1>
-        <p class="page-intro">
-          {{ page_subtitle or "Coordinate the complete exam seating workflow from this workspace." }}
-        </p>
+    <header class="admin-app-header">
+      <div class="admin-title-block">
+        <p class="eyebrow">{{ page_title or "Dashboard" }}</p>
+        <h1>{{ page_title or "Admin Dashboard" }}</h1>
+        <p>{{ page_subtitle or "Manage exam seating operations from one focused workspace." }}</p>
       </div>
-      <div class="topbar-badges">
-        <span class="badge badge-neutral">Exam office</span>
-        <span class="badge badge-primary">Ready to plan</span>
+
+      <div class="admin-header-tools">
+        <span class="session-chip">May Exam Session</span>
+
+        <div class="admin-profile-pill">
+          <span>{{ session.get('username', 'A')[:1] }}</span>
+          <div>
+            <strong>{{ session.get('username', 'Administrator') }}</strong>
+            <small>Admin</small>
+          </div>
+        </div>
       </div>
     </header>
 

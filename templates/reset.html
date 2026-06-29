@@ -1,97 +1,99 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Reset Tools" %}
-{% set page_subtitle = "Run maintenance and cleanup actions from a clearer, safer reset workspace." %}
+{% set page_subtitle = "Controlled maintenance actions for clearing records, uploads, dates, and generated seating files." %}
 {% set active_page = "reset" %}
 
 {% block admin_content %}
-<section class="section-stack">
-  <div class="selection-card">
-    <div class="section-heading">
-      <p class="eyebrow">Maintenance</p>
+<section class="ops-page maintenance-workspace">
+  {% if message %}
+  <div class="alert alert-success">
+    <strong>Maintenance result</strong>
+    <p>{{ message }}</p>
+  </div>
+  {% endif %}
+
+  <div class="ops-panel maintenance-warning">
+    <div>
+      <p class="eyebrow">Administrative maintenance</p>
       <h2>Use reset actions carefully.</h2>
-      <p class="muted-text">
-        These actions clear records, uploaded files, generated seating plans, or exam dates used by the system.
-      </p>
-      <p class="reset-note">Some actions remove records or generated files permanently.</p>
+      <p>These tools clear stored records or generated files. Confirm that the current exam cycle no longer needs the data before running a cleanup action.</p>
     </div>
-    {% if message %}
-    <div class="alert alert-success">
-      <strong>Maintenance result</strong>
-      <p>{{ message }}</p>
-    </div>
-    {% endif %}
+    <span class="session-chip">Protected area</span>
   </div>
 
-  <div class="reset-grid">
-    <article class="reset-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Database</p>
-          <h3>Delete Student Data</h3>
-        </div>
-        <span class="badge badge-danger">Destructive</span>
+  <div class="ops-stats-grid page-stats">
+    <article class="ops-stat-card warning">
+      <span>Destructive actions</span>
+      <strong>2</strong>
+      <small>Student and user collections</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Cleanup actions</span>
+      <strong>3</strong>
+      <small>Files, uploads, dates</small>
+    </article>
+    <article class="ops-stat-card success">
+      <span>Recommended</span>
+      <strong>Backup</strong>
+      <small>Before full reset</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Scope</span>
+      <strong>Admin</strong>
+      <small>Maintenance workspace</small>
+    </article>
+  </div>
+
+  <div class="maintenance-grid">
+    <article class="maintenance-card destructive">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Database</p>
+        <h3>Delete Student Data</h3>
+        <p>Drops the student collection and clears stored student records.</p>
       </div>
-      <p class="card-copy">Drops the student collection and clears stored student records.</p>
-      <a href="{{ url_for('reset_collections') }}" class="button button-danger"
-        >Delete Student Data</a
-      >
+      <a href="{{ url_for('reset_collections') }}" class="button button-danger">Delete Student Data</a>
     </article>
 
-    <article class="reset-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Generated Files</p>
-          <h3>Reset Static Seating Files</h3>
-        </div>
-        <span class="badge badge-warning">Cleanup</span>
+    <article class="maintenance-card">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Generated Files</p>
+        <h3>Reset Static Seating Files</h3>
+        <p>Removes generated seating output files and resets the seating state.</p>
       </div>
-      <p class="card-copy">Removes generated seating output files and resets the seating state.</p>
-      <a href="{{ url_for('reset_static') }}" class="button button-secondary"
-        >Reset Static Files</a
-      >
+      <a href="{{ url_for('reset_static') }}" class="button button-secondary">Reset Static Files</a>
     </article>
 
-    <article class="reset-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Uploads</p>
-          <h3>Clear Uploaded Workbooks</h3>
-        </div>
-        <span class="badge badge-warning">Cleanup</span>
+    <article class="maintenance-card">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Uploads</p>
+        <h3>Clear Uploaded Workbooks</h3>
+        <p>Deletes uploaded Excel workbooks from the upload folder.</p>
       </div>
-      <p class="card-copy">Deletes uploaded workbooks from the exam upload folder.</p>
-      <a href="{{ url_for('reset_uploads') }}" class="button button-secondary"
-        >Reset Uploads</a
-      >
+      <a href="{{ url_for('reset_uploads') }}" class="button button-secondary">Reset Uploads</a>
     </article>
 
-    <article class="reset-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Dates</p>
-          <h3>Reset Exam Dates</h3>
-        </div>
-        <span class="badge badge-warning">Cleanup</span>
+    <article class="maintenance-card">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Dates</p>
+        <h3>Reset Exam Dates</h3>
+        <p>Clears the stored list of exam dates used by the seating viewer.</p>
       </div>
-      <p class="card-copy">Clears the stored list of exam dates used by the seating viewer and generator.</p>
-      <a href="{{ url_for('reset_dates') }}" class="button button-secondary"
-        >Reset Dates</a
-      >
+      <a href="{{ url_for('reset_dates') }}" class="button button-secondary">Reset Dates</a>
     </article>
 
-    <article class="reset-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Users</p>
-          <h3>Delete Admin Users</h3>
-        </div>
-        <span class="badge badge-danger">Destructive</span>
+    <article class="maintenance-card destructive">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Users</p>
+        <h3>Delete Admin Users</h3>
+        <p>Drops the user collection and removes registered admin accounts.</p>
       </div>
-      <p class="card-copy">Drops the user collection and removes every registered admin account.</p>
-      <a href="{{ url_for('reset_users') }}" class="button button-danger"
-        >Delete Users</a
-      >
+      <a href="{{ url_for('reset_users') }}" class="button button-danger">Delete Users</a>
     </article>
   </div>
 </section>

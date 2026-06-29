@@ -11,28 +11,50 @@
 <label class="class-option">
   <input type="checkbox" name="item[]" value="{{ name }}" />
   <span class="class-card">
-    <span class="class-name">{{ name }}</span>
+    <span class="class-card-top">
+      <span class="class-name">{{ name }}</span>
+      <span class="class-capacity">{{ columns * rows }}</span>
+    </span>
     <span class="class-meta">{{ columns }} columns x {{ rows }} rows</span>
-    <span class="class-capacity">{{ columns * rows }} seats</span>
+    <span class="mini-seat-grid" aria-hidden="true">
+      {% for item in range(12) %}<i></i>{% endfor %}
+    </span>
   </span>
 </label>
 {%- endmacro %}
 
 {% block admin_content %}
-<section class="selection-layout">
-  <div class="selection-card">
-    <div class="selection-summary">
+<section class="ops-page classroom-workspace">
+  <div class="ops-stats-grid page-stats">
+    <article class="ops-stat-card">
+      <span>Available rooms</span>
+      <strong>{{ adm_classes|length + east_classes|length + west_classes|length }}</strong>
+      <small>Across three blocks</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Selected rooms</span>
+      <strong data-selected-count>0</strong>
+      <small>Current seating run</small>
+    </article>
+    <article class="ops-stat-card success">
+      <span>Largest rooms</span>
+      <strong>EAB</strong>
+      <small>High-capacity halls</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Next step</span>
+      <strong>Generate</strong>
+      <small>Create seating layout</small>
+    </article>
+  </div>
+
+  <div class="ops-panel classroom-toolbar">
+    <div class="ops-panel-header">
       <div>
-        <p class="eyebrow">Room planning</p>
-        <h2>Select every classroom available for the exam session.</h2>
-        <p class="muted-text">
-          The system uses selected rooms and capacities to shape the final seating plan.
-        </p>
+        <h2>Classroom capacity management</h2>
+        <p>Select rooms available for the current exam session. The selected capacity controls final seating generation.</p>
       </div>
-      <div class="metric-pill">
-        <span>Selected rooms</span>
-        <strong data-selected-count>0</strong>
-      </div>
+      <span class="session-chip">Room selection</span>
     </div>
 
     {% if stunum %}
@@ -56,11 +78,14 @@
     {% endwith %}
   </div>
 
-  <form action="{{ url_for('details') }}" method="POST" data-class-form class="class-groups">
-    <section class="class-group">
-      <div class="section-heading">
-        <p class="eyebrow">Administration Block</p>
-        <h3>ADM classrooms</h3>
+  <form action="{{ url_for('details') }}" method="POST" data-class-form class="class-groups workspace-class-groups">
+    <section class="class-group ops-panel">
+      <div class="class-group-header">
+        <div>
+          <p class="eyebrow">Administration Block</p>
+          <h3>ADM classrooms</h3>
+        </div>
+        <span>{{ adm_classes|length }} rooms</span>
       </div>
       <div class="class-grid">
         {% for name, columns, rows in adm_classes %}
@@ -69,10 +94,13 @@
       </div>
     </section>
 
-    <section class="class-group">
-      <div class="section-heading">
-        <p class="eyebrow">East Wing</p>
-        <h3>East classrooms</h3>
+    <section class="class-group ops-panel">
+      <div class="class-group-header">
+        <div>
+          <p class="eyebrow">East Wing</p>
+          <h3>East classrooms</h3>
+        </div>
+        <span>{{ east_classes|length }} rooms</span>
       </div>
       <div class="class-grid">
         {% for name, columns, rows in east_classes %}
@@ -81,10 +109,13 @@
       </div>
     </section>
 
-    <section class="class-group">
-      <div class="section-heading">
-        <p class="eyebrow">West Wing</p>
-        <h3>West classrooms</h3>
+    <section class="class-group ops-panel">
+      <div class="class-group-header">
+        <div>
+          <p class="eyebrow">West Wing</p>
+          <h3>West classrooms</h3>
+        </div>
+        <span>{{ west_classes|length }} rooms</span>
       </div>
       <div class="class-grid">
         {% for name, columns, rows in west_classes %}
@@ -93,7 +124,7 @@
       </div>
     </section>
 
-    <div class="selection-actions">
+    <div class="workspace-form-actions sticky-actions">
       <button type="submit" class="button button-primary">Proceed to Generate</button>
       <a href="{{ url_for('admin') }}" class="button button-secondary">Back to Dashboard</a>
     </div>

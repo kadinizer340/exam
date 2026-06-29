@@ -1,240 +1,153 @@
 {% extends "base.html" %}
 
-{% set page_title = "Admin Access" %}
-{% set body_class = "auth-page" %}
+{% set page_title = "Admin Login" %}
+{% set body_class = "admin-login-light" %}
+
+{% block head %}
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+{% endblock %}
 
 {% block body %}
-<header class="public-nav">
-  <a href="{{ url_for('index') }}" class="brand">
-    <span class="brand-mark">S</span>
-    <span>
-      <strong>Seat Allocation</strong>
-      <small>Admin authentication</small>
-    </span>
-  </a>
+<main class="login-page-shell">
+  <div class="login-bg-shape login-bg-shape-one" aria-hidden="true"></div>
+  <div class="login-bg-shape login-bg-shape-two" aria-hidden="true"></div>
 
-  <nav class="nav-links">
-    <a href="{{ url_for('student') }}" class="nav-link">Student Portal</a>
-    <a href="{{ url_for('index') }}" class="nav-link">Back to Home</a>
-  </nav>
-</header>
+  <header class="login-topbar">
+    <a href="{{ url_for('index') }}" class="login-brand" aria-label="Back to home">
+      <span class="login-brand-mark login-brand-logo" aria-hidden="true">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="" />
+      </span>
+      <span>
+        <strong>Seat Arrangement</strong>
+        <small>Admin workspace</small>
+      </span>
+    </a>
 
-<main class="auth-shell">
-  <section class="auth-panel">
-    <div>
-      <p class="eyebrow">Secure workspace</p>
-      <h1>Modern admin access for exam seating operations.</h1>
+    <nav class="login-nav">
+      <a href="{{ url_for('student') }}">Student Lookup</a>
+      <a href="{{ url_for('index') }}">Home</a>
+    </nav>
+  </header>
+
+  <section class="login-hero">
+    <div class="login-copy">
+      <p class="login-pill">Protected exam office access</p>
+      <h1>Welcome back to your exam seating workspace.</h1>
       <p>
-        Sign in to manage uploads, configure classrooms, generate seating plans,
-        and verify the final student-facing seat details from one place.
+        Sign in to upload student records, process timetables, select classrooms,
+        generate seating plans, and manage examination arrangements with confidence.
       </p>
+
+      <div class="login-highlight-grid">
+        <article>
+          <span></span>
+          <strong>Organized workflow</strong>
+          <p>Move from student data to final seating plans in a clear sequence.</p>
+        </article>
+        <article>
+          <span></span>
+          <strong>Room-aware planning</strong>
+          <p>Use selected classrooms and capacity checks during allocation.</p>
+        </article>
+        <article>
+          <span></span>
+          <strong>Student-ready output</strong>
+          <p>Publish searchable seat details for students through roll number lookup.</p>
+        </article>
+      </div>
     </div>
 
-    <div class="auth-panel-grid">
-      <div class="mini-stat">
-        <strong>Clean workflow</strong>
-        <span>Upload data, attach timetables, and generate seats with less friction.</span>
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="login-card-head">
+        <p class="login-pill">Admin Login</p>
+        <h2 id="login-title">Sign in securely</h2>
+        <p>Use your administrator credentials to continue.</p>
       </div>
-      <div class="mini-stat">
-        <strong>Guided registration</strong>
-        <span>Clear username and password guidance helps admins sign up correctly.</span>
-      </div>
-      <div class="mini-stat">
-        <strong>Student-ready output</strong>
-        <span>Publish readable seating plans and lookup details faster.</span>
-      </div>
-    </div>
-  </section>
 
-  <section class="auth-forms">
-    <div class="auth-grid">
-      <article class="auth-card">
-        <div class="section-heading">
-          <p class="eyebrow">Login</p>
-          <h2>Admin Sign In</h2>
-          <p class="muted-text">Use your admin credentials to continue.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="login-alert-stack">
+        {% for category, message in messages %}
+        <div class="login-alert {% if category in ['registration-success', 'success'] %}login-alert-success{% else %}login-alert-error{% endif %}">
+          <strong>
+            {% if category in ['registration-success', 'success'] %}
+            Status update
+            {% else %}
+            Login issue
+            {% endif %}
+          </strong>
+          <p>{{ message }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('login') }}" class="login-form">
+        <div class="login-field">
+          <label for="username">Username</label>
+          <div class="login-input-shell">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                <path d="M5 20a7 7 0 0 1 14 0" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter admin username"
+              required
+              autocomplete="username"
+            />
+          </div>
         </div>
 
-        <form method="POST" action="{{ url_for('login') }}" class="form-stack">
-          <div class="form-group">
-            <label class="field-label" for="username">Username</label>
-            <div class="input-shell">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-                  <path d="M5 20a7 7 0 0 1 14 0" />
-                </svg>
-              </span>
-              <input
-                type="text"
-                class="input-control"
-                id="username"
-                name="username"
-                placeholder="Enter username"
-                required
-                autocomplete="username"
-              />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label" for="password">Password</label>
-            <div class="input-shell">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <rect x="5" y="11" width="14" height="9" rx="2" />
-                  <path d="M8 11V8a4 4 0 1 1 8 0v3" />
-                </svg>
-              </span>
-              <input
-                type="password"
-                class="input-control"
-                id="password"
-                name="password"
-                placeholder="Enter password"
-                required
-                autocomplete="current-password"
-              />
-            </div>
-          </div>
-
-          <label class="checkbox-row" for="login-remember">
+        <div class="login-field">
+          <label for="password">Password</label>
+          <div class="login-input-shell">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 1 1 8 0v3" />
+              </svg>
+            </span>
             <input
-              type="checkbox"
-              value="remember-me"
-              id="login-remember"
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter password"
+              required
+              autocomplete="current-password"
             />
+          </div>
+        </div>
+
+        <div class="login-form-meta">
+          <label for="remember-device">
+            <input type="checkbox" id="remember-device" value="remember-me" />
             <span>Remember this device</span>
           </label>
-
-          <button class="button button-primary button-block" type="submit">
-            Sign In
-          </button>
-        </form>
-
-        {% with messages = get_flashed_messages(category_filter=['login-error']) %}
-        {% if messages %}
-        <div class="alert-stack">
-          {% for message in messages %}
-          <div class="alert alert-danger">
-            <strong>Login failed</strong>
-            <p>{{ message }}</p>
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-      </article>
-
-      <article class="auth-card">
-        <div class="section-heading">
-          <p class="eyebrow">Registration</p>
-          <h2>Create Admin Account</h2>
-          <p class="muted-text">
-            Create an account using the institution's admin username format.
-          </p>
+          <span>Admin only</span>
         </div>
 
-        <form
-          id="signup-form"
-          method="POST"
-          action="{{ url_for('register') }}"
-          class="form-stack"
-        >
-          <div class="form-group">
-            <label class="field-label" for="username-field">Username</label>
-            <div class="input-shell">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-                  <path d="M5 20a7 7 0 0 1 14 0" />
-                </svg>
-              </span>
-              <input
-                type="text"
-                class="input-control"
-                name="username"
-                id="username-field"
-                placeholder="Example: JEC123"
-                required
-                autocomplete="username"
-                pattern="^JEC\d{3}$"
-                title="Username must start with JEC and end with 3 numbers, for example JEC123."
-              />
-            </div>
-            <p class="helper-text">Format: JEC followed by exactly 3 numbers.</p>
-          </div>
+        <button type="submit" class="login-submit">
+          Sign In
+          <span aria-hidden="true"></span>
+        </button>
+      </form>
 
-          <div class="form-group">
-            <label class="field-label" for="password-field">Password</label>
-            <div class="input-shell">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <rect x="5" y="11" width="14" height="9" rx="2" />
-                  <path d="M8 11V8a4 4 0 1 1 8 0v3" />
-                </svg>
-              </span>
-              <input
-                type="password"
-                class="input-control"
-                name="password"
-                id="password-field"
-                placeholder="Create password"
-                required
-                autocomplete="new-password"
-                minlength="8"
-              />
-            </div>
-            <p class="helper-text">
-              Use at least 8 characters and combine 3 strength criteria.
-            </p>
-          </div>
-
-          <label class="checkbox-row" for="signup-remember">
-            <input
-              type="checkbox"
-              value="remember-me"
-              id="signup-remember"
-            />
-            <span>Remember this device</span>
-          </label>
-
-          <button class="button button-secondary button-block" type="submit">
-            Create Account
-          </button>
-        </form>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="alert-stack">
-          {% for category, message in messages %}
-          {% if category in ['registration-error', 'registration-success'] %}
-          <div class="alert {% if category == 'registration-success' %}alert-success{% else %}alert-danger{% endif %}">
-            <strong>
-              {% if category == 'registration-success' %}
-              Registration complete
-              {% else %}
-              Registration issue
-              {% endif %}
-            </strong>
-            <p>{{ message }}</p>
-          </div>
-          {% endif %}
-          {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-      </article>
-    </div>
+      <div class="login-card-footer">
+        <span>Need seat details?</span>
+        <a href="{{ url_for('student') }}">Open student lookup</a>
+      </div>
+    </section>
   </section>
 </main>
-
-<footer class="footer-section site-footer">
-  <div class="footer-bar surface-card">
-    <span>Protected admin entry</span>
-    <span>Built for examination offices managing student seating plans.</span>
-  </div>
-</footer>
-
-<script src="{{ url_for('static', filename='login.js') }}"></script>
 {% endblock %}

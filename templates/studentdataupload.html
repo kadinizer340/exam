@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
-{% set page_title = "Upload Student Data" %}
-{% set page_subtitle = "Import student workbooks for second, third, and fourth year groups using the required exam data format." %}
+{% set page_title = "Student Data" %}
+{% set page_subtitle = "Import and monitor student records used by the seating allocation engine." %}
 {% set active_page = "upload-data" %}
 
 {% block admin_content %}
@@ -18,111 +18,131 @@
 {% endif %}
 {% endwith %}
 
-<section class="upload-layout">
-  <form
-    action="{{ url_for('upload_file') }}"
-    method="POST"
-    enctype="multipart/form-data"
-    class="section-stack"
-  >
-    <div class="section-heading">
-      <p class="eyebrow">Workbook Upload</p>
-      <h2>Attach student class lists by year.</h2>
-      <p class="muted-text">
-        Use Excel files with sheet names representing the class or section and
-        columns named exactly <code>rollnum</code> and <code>name</code>.
-      </p>
-    </div>
+<section class="ops-page">
+  <div class="ops-stats-grid page-stats">
+    <article class="ops-stat-card">
+      <span>Expected columns</span>
+      <strong>2</strong>
+      <small>rollnum and name</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Year groups</span>
+      <strong>3</strong>
+      <small>Second, third, fourth</small>
+    </article>
+    <article class="ops-stat-card success">
+      <span>Upload format</span>
+      <strong>XLSX</strong>
+      <small>Excel workbook support</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Next step</span>
+      <strong>Timetable</strong>
+      <small>Map dates and subjects</small>
+    </article>
+  </div>
 
-    <div class="upload-grid">
-      <article class="upload-card">
-        <div class="upload-card-header">
-          <span class="upload-year">Second Year</span>
-          <h3>Student workbook</h3>
-          <p class="card-copy">
-            Upload the second year student Excel workbook in `.xls` or `.xlsx` format.
-          </p>
+  <div class="ops-two-column">
+    <form
+      action="{{ url_for('upload_file') }}"
+      method="POST"
+      enctype="multipart/form-data"
+      class="ops-panel data-upload-panel"
+    >
+      <div class="ops-panel-header">
+        <div>
+          <h2>Student workbook upload</h2>
+          <p>Attach student lists by year. Sheet tabs should represent class or section groups.</p>
         </div>
-        <label for="file2" class="dropzone" data-dropzone>
-          <strong>Choose second year file</strong>
-          <small data-file-name>No file selected yet</small>
-          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
-          <input
-            type="file"
-            class="file-input"
-            name="file2"
-            id="file2"
-            accept=".xls,.xlsx"
-            data-file-input
-          />
-        </label>
+        <span class="session-chip">Data intake</span>
+      </div>
+
+      <div class="workspace-upload-grid">
+        <article class="workspace-upload-card">
+          <div>
+            <span class="upload-year">Second Year</span>
+            <h3>Student records</h3>
+            <p>Upload the second year workbook.</p>
+          </div>
+          <label for="file2" class="dropzone" data-dropzone>
+            <strong>Choose file</strong>
+            <small data-file-name>No file selected yet</small>
+            <small>Required: <code>rollnum</code>, <code>name</code></small>
+            <input type="file" class="file-input" name="file2" id="file2" accept=".xls,.xlsx" data-file-input />
+          </label>
+        </article>
+
+        <article class="workspace-upload-card">
+          <div>
+            <span class="upload-year">Third Year</span>
+            <h3>Student records</h3>
+            <p>Upload the third year workbook.</p>
+          </div>
+          <label for="file3" class="dropzone" data-dropzone>
+            <strong>Choose file</strong>
+            <small data-file-name>No file selected yet</small>
+            <small>Required: <code>rollnum</code>, <code>name</code></small>
+            <input type="file" class="file-input" name="file3" id="file3" accept=".xls,.xlsx" data-file-input />
+          </label>
+        </article>
+
+        <article class="workspace-upload-card">
+          <div>
+            <span class="upload-year">Fourth Year</span>
+            <h3>Student records</h3>
+            <p>Upload the fourth year workbook.</p>
+          </div>
+          <label for="file4" class="dropzone" data-dropzone>
+            <strong>Choose file</strong>
+            <small data-file-name>No file selected yet</small>
+            <small>Required: <code>rollnum</code>, <code>name</code></small>
+            <input type="file" class="file-input" name="file4" id="file4" accept=".xls,.xlsx" data-file-input />
+          </label>
+        </article>
+      </div>
+
+      <div class="workspace-form-actions">
+        <button type="submit" class="button button-primary">Upload Student Workbooks</button>
+        <a href="{{ url_for('display_data') }}" class="button button-secondary">Preview Latest Upload</a>
+      </div>
+    </form>
+
+    <aside class="ops-side-column">
+      <article class="ops-panel">
+        <div class="ops-panel-header">
+          <div>
+            <h2>Record readiness</h2>
+            <p>Quick checks before timetable mapping.</p>
+          </div>
+        </div>
+        <div class="readiness-list">
+          <div><span></span><strong>Numeric roll numbers</strong><small>Required for student lookup</small></div>
+          <div><span></span><strong>Consistent sheet names</strong><small>Used to match timetable groups</small></div>
+          <div><span></span><strong>Clean student names</strong><small>Improves exported reports</small></div>
+        </div>
       </article>
 
-      <article class="upload-card">
-        <div class="upload-card-header">
-          <span class="upload-year">Third Year</span>
-          <h3>Student workbook</h3>
-          <p class="card-copy">
-            Upload the third year workbook if you want those students included.
-          </p>
+      <article class="ops-panel">
+        <div class="ops-panel-header">
+          <div>
+            <h2>Upload history</h2>
+            <p>Recent import activity.</p>
+          </div>
         </div>
-        <label for="file3" class="dropzone" data-dropzone>
-          <strong>Choose third year file</strong>
-          <small data-file-name>No file selected yet</small>
-          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
-          <input
-            type="file"
-            class="file-input"
-            name="file3"
-            id="file3"
-            accept=".xls,.xlsx"
-            data-file-input
-          />
-        </label>
-      </article>
-
-      <article class="upload-card">
-        <div class="upload-card-header">
-          <span class="upload-year">Fourth Year</span>
-          <h3>Student workbook</h3>
-          <p class="card-copy">
-            Upload the fourth year workbook if it is part of the current exam cycle.
-          </p>
+        <div class="workspace-table-wrap">
+          <table class="workspace-table">
+            <thead>
+              <tr><th>Group</th><th>Status</th><th>Format</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Second Year</td><td><span class="table-status">Ready</span></td><td>.xlsx</td></tr>
+              <tr><td>Third Year</td><td><span class="table-status muted">Optional</span></td><td>.xlsx</td></tr>
+              <tr><td>Fourth Year</td><td><span class="table-status muted">Optional</span></td><td>.xlsx</td></tr>
+            </tbody>
+          </table>
         </div>
-        <label for="file4" class="dropzone" data-dropzone>
-          <strong>Choose fourth year file</strong>
-          <small data-file-name>No file selected yet</small>
-          <small>Expected columns: <code>rollnum</code>, <code>name</code></small>
-          <input
-            type="file"
-            class="file-input"
-            name="file4"
-            id="file4"
-            accept=".xls,.xlsx"
-            data-file-input
-          />
-        </label>
       </article>
-    </div>
-
-    <div class="upload-actions">
-      <button type="submit" class="button button-primary">Upload Student Workbooks</button>
-      <a href="{{ url_for('admin') }}" class="button button-secondary">Back to Dashboard</a>
-    </div>
-  </form>
-
-  <aside class="instruction-card">
-    <div class="section-heading">
-      <p class="eyebrow">Upload rules</p>
-      <h2>Prepare the Excel files correctly.</h2>
-    </div>
-    <ul>
-      <li>Use <code>.xls</code> or <code>.xlsx</code> only.</li>
-      <li>Every sheet tab should represent a class or section such as <code>csa</code> or <code>ec</code>.</li>
-      <li>Each sheet must contain <code>rollnum</code> and <code>name</code> columns exactly.</li>
-      <li>Keep <code>rollnum</code> numeric so lookup and seat generation continue to work.</li>
-      <li>After upload, the system stores each sheet name as the student group identifier.</li>
-    </ul>
-  </aside>
+    </aside>
+  </div>
 </section>
 {% endblock %}

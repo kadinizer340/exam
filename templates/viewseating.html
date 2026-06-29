@@ -5,41 +5,59 @@
 {% set active_page = "seating" %}
 
 {% block admin_content %}
-<section class="seating-layout">
-  <div class="selection-card seating-toolbar">
-    <div class="selection-summary">
+<section class="ops-page seating-workspace">
+  <div class="ops-stats-grid page-stats">
+    <article class="ops-stat-card">
+      <span>Available dates</span>
+      <strong id="dateCount">0</strong>
+      <small>Generated exam days</small>
+    </article>
+    <article class="ops-stat-card success">
+      <span>Current view</span>
+      <strong id="roomCountBadge">0 rooms</strong>
+      <small>Filtered rooms</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Plan status</span>
+      <strong>Published</strong>
+      <small>Ready for review</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Lookup</span>
+      <strong>Active</strong>
+      <small>Student portal enabled</small>
+    </article>
+  </div>
+
+  <div class="ops-panel seating-toolbar">
+    <div class="ops-panel-header">
       <div>
-        <p class="eyebrow">Generated seating</p>
-        <h2>Open a date to inspect the room-by-room arrangement.</h2>
-        <p class="muted-text">
-          Select an exam date to review each classroom, occupied seat, and roll number.
-        </p>
+        <h2>Generated seating plans</h2>
+        <p>Select an exam date, filter by classroom, and inspect the room-by-room arrangement.</p>
       </div>
-      <div class="metric-pill">
-        <span>Available dates</span>
-        <strong id="dateCount">0</strong>
-      </div>
+      <div class="badge badge-neutral" id="selectedDateBadge">Select a date</div>
     </div>
 
-    <div class="date-list" id="dateButtons"></div>
-
-    <div class="seating-summary">
+    <div class="seating-toolbar-controls">
+      <div class="date-list" id="dateButtons"></div>
       <input
         id="roomFilter"
         class="filter-input"
         type="search"
         placeholder="Filter by classroom name"
       />
-      <div class="badge badge-neutral" id="selectedDateBadge">Select a date</div>
     </div>
   </div>
 
-  <div class="selection-card seating-summary">
+  <div class="ops-panel seating-current-panel">
     <div>
       <p class="eyebrow">Current view</p>
       <h2 id="seatingHeading">No date selected yet</h2>
     </div>
-    <div class="badge badge-primary" id="roomCountBadge">0 rooms</div>
+    <div class="button-row">
+      <a href="{{ url_for('student') }}" class="button button-secondary">Open Student Lookup</a>
+      <a href="{{ url_for('admin') }}" class="button button-secondary">Dashboard</a>
+    </div>
   </div>
 
   <div id="seatingTables" class="seating-grid"></div>
