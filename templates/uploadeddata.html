@@ -12,7 +12,7 @@
         <p class="eyebrow">Upload complete</p>
         <h2>Student workbooks were imported into the exam workspace.</h2>
         <p class="muted-text">
-          Each sheet listed below has been captured and stored with its year and sheet name.
+          Each workbook was validated and stored as exam-centric student records.
         </p>
       </div>
       <div class="button-row">
@@ -26,57 +26,49 @@
     </div>
   </div>
 
+  {% if summaries is defined and summaries %}
   <div class="preview-grid">
-    {% if data2 is not none %}
+    {% for summary in summaries %}
     <article class="preview-card">
       <div class="card-head">
         <div>
-          <p class="eyebrow">Second Year</p>
-          <h3>Imported sheets</h3>
+          <p class="eyebrow">{{ summary.filename }}</p>
+          <h3>Import summary</h3>
         </div>
-        <span class="badge badge-primary">{{ data2|length }} sheets</span>
+        <span class="badge badge-primary">{{ summary.inserted + summary.updated }} saved</span>
       </div>
+      <div class="readiness-list">
+        <div><span></span><strong>{{ summary.total_rows }}</strong><small>Total rows</small></div>
+        <div><span></span><strong>{{ summary.inserted }}</strong><small>Inserted</small></div>
+        <div><span></span><strong>{{ summary.updated }}</strong><small>Updated</small></div>
+        <div><span></span><strong>{{ summary.skipped }}</strong><small>Skipped</small></div>
+      </div>
+      {% if summary.preview %}
       <ul class="sheet-list">
-        {% for sheet_name in data2 %}
-        <li>{{ sheet_name }}</li>
+        {% for sheet_name, count in summary.preview.items() %}
+        <li>{{ sheet_name }} - {{ count }} rows</li>
         {% endfor %}
       </ul>
-    </article>
-    {% endif %}
-
-    {% if data3 is not none %}
-    <article class="preview-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Third Year</p>
-          <h3>Imported sheets</h3>
-        </div>
-        <span class="badge badge-primary">{{ data3|length }} sheets</span>
+      {% endif %}
+      {% if summary.warnings %}
+      <div class="alert alert-warning">
+        <strong>Warnings</strong>
+        <p>{{ summary.warnings[:3]|join(' ') }}</p>
       </div>
-      <ul class="sheet-list">
-        {% for sheet_name in data3 %}
-        <li>{{ sheet_name }}</li>
-        {% endfor %}
-      </ul>
-    </article>
-    {% endif %}
-
-    {% if data4 is not none %}
-    <article class="preview-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Fourth Year</p>
-          <h3>Imported sheets</h3>
-        </div>
-        <span class="badge badge-primary">{{ data4|length }} sheets</span>
+      {% endif %}
+      {% if summary.errors %}
+      <div class="alert alert-danger">
+        <strong>Validation errors</strong>
+        <p>
+          {% for error in summary.errors[:4] %}
+          {{ error.message if error.message is defined else error['message'] }}
+          {% endfor %}
+        </p>
       </div>
-      <ul class="sheet-list">
-        {% for sheet_name in data4 %}
-        <li>{{ sheet_name }}</li>
-        {% endfor %}
-      </ul>
+      {% endif %}
     </article>
-    {% endif %}
+    {% endfor %}
   </div>
+  {% endif %}
 </section>
 {% endblock %}

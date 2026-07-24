@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Student Data" %}
-{% set page_subtitle = "Import and monitor student records used by the seating allocation engine." %}
+{% set page_subtitle = "Import exam-ready student identities used by sessions, exams, and candidate registration." %}
 {% set active_page = "upload-data" %}
 
 {% block admin_content %}
@@ -22,13 +22,13 @@
   <div class="ops-stats-grid page-stats">
     <article class="ops-stat-card">
       <span>Expected columns</span>
-      <strong>2</strong>
-      <small>rollnum and name</small>
+      <strong>8</strong>
+      <small>roll number, programme, NTA</small>
     </article>
     <article class="ops-stat-card">
-      <span>Year groups</span>
-      <strong>3</strong>
-      <small>Second, third, fourth</small>
+      <span>Identity model</span>
+      <strong>NTA</strong>
+      <small>Department and class group</small>
     </article>
     <article class="ops-stat-card success">
       <span>Upload format</span>
@@ -52,7 +52,7 @@
       <div class="ops-panel-header">
         <div>
           <h2>Student workbook upload</h2>
-          <p>Attach student lists by year. Sheet tabs should represent class or section groups.</p>
+          <p>Attach student lists with roll number, department, programme type, NTA level, and class group.</p>
         </div>
         <span class="session-chip">Data intake</span>
       </div>
@@ -60,42 +60,42 @@
       <div class="workspace-upload-grid">
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Second Year</span>
+            <span class="upload-year">Primary Import</span>
             <h3>Student records</h3>
-            <p>Upload the second year workbook.</p>
+            <p>Upload the main student workbook.</p>
           </div>
           <label for="file2" class="dropzone" data-dropzone>
             <strong>Choose file</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>rollnum</code>, <code>name</code></small>
-            <input type="file" class="file-input" name="file2" id="file2" accept=".xls,.xlsx" data-file-input />
+            <small>Required: <code>roll_number</code>, <code>name</code>, <code>nta_level</code></small>
+            <input type="file" class="file-input" name="file" id="file2" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
 
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Third Year</span>
-            <h3>Student records</h3>
-            <p>Upload the third year workbook.</p>
+            <span class="upload-year">Legacy Optional</span>
+            <h3>Additional workbook</h3>
+            <p>Optional compatibility upload.</p>
           </div>
           <label for="file3" class="dropzone" data-dropzone>
             <strong>Choose file</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>rollnum</code>, <code>name</code></small>
+            <small>Aliases supported: <code>rollnum</code>, <code>student_name</code></small>
             <input type="file" class="file-input" name="file3" id="file3" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
 
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Fourth Year</span>
-            <h3>Student records</h3>
-            <p>Upload the fourth year workbook.</p>
+            <span class="upload-year">Legacy Optional</span>
+            <h3>Additional workbook</h3>
+            <p>Optional compatibility upload.</p>
           </div>
           <label for="file4" class="dropzone" data-dropzone>
             <strong>Choose file</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>rollnum</code>, <code>name</code></small>
+            <small>Missing metadata is marked for review.</small>
             <input type="file" class="file-input" name="file4" id="file4" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
@@ -116,9 +116,9 @@
           </div>
         </div>
         <div class="readiness-list">
-          <div><span></span><strong>Numeric roll numbers</strong><small>Required for student lookup</small></div>
-          <div><span></span><strong>Consistent sheet names</strong><small>Used to match timetable groups</small></div>
-          <div><span></span><strong>Clean student names</strong><small>Improves exported reports</small></div>
+          <div><span></span><strong>Unique roll numbers</strong><small>Used as the student identity</small></div>
+          <div><span></span><strong>Programme type</strong><small>Bachelor, Diploma, or Bachelor Night</small></div>
+          <div><span></span><strong>NTA level</strong><small>Controls exam duration matching</small></div>
         </div>
       </article>
 
@@ -132,12 +132,12 @@
         <div class="workspace-table-wrap">
           <table class="workspace-table">
             <thead>
-              <tr><th>Group</th><th>Status</th><th>Format</th></tr>
+              <tr><th>Column</th><th>Status</th><th>Example</th></tr>
             </thead>
             <tbody>
-              <tr><td>Second Year</td><td><span class="table-status">Ready</span></td><td>.xlsx</td></tr>
-              <tr><td>Third Year</td><td><span class="table-status muted">Optional</span></td><td>.xlsx</td></tr>
-              <tr><td>Fourth Year</td><td><span class="table-status muted">Optional</span></td><td>.xlsx</td></tr>
+              <tr><td>programme_type</td><td><span class="table-status">Required</span></td><td>Bachelor</td></tr>
+              <tr><td>nta_level</td><td><span class="table-status">Required</span></td><td>7</td></tr>
+              <tr><td>class_group</td><td><span class="table-status">Required</span></td><td>BIT-2A</td></tr>
             </tbody>
           </table>
         </div>

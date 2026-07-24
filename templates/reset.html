@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Reset Tools" %}
-{% set page_subtitle = "Controlled maintenance actions for clearing records, uploads, dates, and generated seating files." %}
+{% set page_subtitle = "Controlled maintenance actions for clearing records, uploaded files, timetable data, and generated seating files." %}
 {% set active_page = "reset" %}
 
 {% block admin_content %}
@@ -25,13 +25,13 @@
   <div class="ops-stats-grid page-stats">
     <article class="ops-stat-card warning">
       <span>Destructive actions</span>
-      <strong>2</strong>
-      <small>Student and user collections</small>
+      <strong>3</strong>
+      <small>Student, timetable, and user data</small>
     </article>
     <article class="ops-stat-card">
       <span>Cleanup actions</span>
-      <strong>3</strong>
-      <small>Files, uploads, dates</small>
+      <strong>4</strong>
+      <small>Files, uploads, timetable, dates</small>
     </article>
     <article class="ops-stat-card success">
       <span>Recommended</span>
@@ -53,7 +53,7 @@
         <h3>Delete Student Data</h3>
         <p>Drops the student collection and clears stored student records.</p>
       </div>
-      <a href="{{ url_for('reset_collections') }}" class="button button-danger">Delete Student Data</a>
+      <a href="{{ url_for('reset_collections', confirm='YES') }}" class="button button-danger">Delete Student Data</a>
     </article>
 
     <article class="maintenance-card">
@@ -71,9 +71,19 @@
         <span class="maintenance-icon"></span>
         <p class="eyebrow">Uploads</p>
         <h3>Clear Uploaded Workbooks</h3>
-        <p>Deletes uploaded Excel workbooks from the upload folder.</p>
+        <p>Deletes Excel files from the upload folder only. Imported database records are not removed.</p>
       </div>
       <a href="{{ url_for('reset_uploads') }}" class="button button-secondary">Reset Uploads</a>
+    </article>
+
+    <article class="maintenance-card destructive">
+      <div>
+        <span class="maintenance-icon"></span>
+        <p class="eyebrow">Timetable Database</p>
+        <h3>Clear Timetable Data</h3>
+        <p>Deletes imported exam sessions, exams, candidates, seating allocations, and generated seating files while keeping student records.</p>
+      </div>
+      <a href="{{ url_for('reset_timetable', confirm='YES') }}" class="button button-danger">Clear Timetable Data</a>
     </article>
 
     <article class="maintenance-card">
@@ -93,7 +103,7 @@
         <h3>Delete Admin Users</h3>
         <p>Drops the user collection and removes registered admin accounts.</p>
       </div>
-      <a href="{{ url_for('reset_users') }}" class="button button-danger">Delete Users</a>
+      <a href="{{ url_for('reset_users', confirm='YES') }}" class="button button-danger">Delete Users</a>
     </article>
   </div>
 </section>

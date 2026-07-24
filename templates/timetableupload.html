@@ -1,7 +1,7 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Timetable" %}
-{% set page_subtitle = "Upload exam schedules and prepare subject/date mapping for seating generation." %}
+{% set page_subtitle = "Upload exam schedules that create sessions, exams, candidates, and calculated end times." %}
 {% set active_page = "upload-timetable" %}
 
 {% block admin_content %}
@@ -22,18 +22,18 @@
   <div class="ops-stats-grid page-stats">
     <article class="ops-stat-card">
       <span>Required columns</span>
-      <strong>2</strong>
-      <small>date and subject</small>
+      <strong>8</strong>
+      <small>exam code, session, NTA</small>
     </article>
     <article class="ops-stat-card success">
       <span>Mapping mode</span>
-      <strong>Branch</strong>
-      <small>Sheet-based schedule</small>
+      <strong>Exam</strong>
+      <small>Code-based grouping</small>
     </article>
     <article class="ops-stat-card">
       <span>Exam sessions</span>
-      <strong>Dates</strong>
-      <small>Collected automatically</small>
+      <strong>3</strong>
+      <small>Morning, afternoon, night</small>
     </article>
     <article class="ops-stat-card warning">
       <span>Validation</span>
@@ -52,7 +52,7 @@
       <div class="ops-panel-header">
         <div>
           <h2>Exam timetable upload</h2>
-          <p>Attach schedules for each year so the system can map students to exam dates and subjects.</p>
+          <p>Attach schedules with exam code, date, programme type, NTA level, session, start time, and target groups.</p>
         </div>
         <span class="session-chip">Scheduling</span>
       </div>
@@ -60,42 +60,42 @@
       <div class="workspace-upload-grid">
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Second Year</span>
-            <h3>Timetable workbook</h3>
-            <p>Upload the second year schedule.</p>
+            <span class="upload-year">Primary Import</span>
+            <h3>Exam timetable workbook</h3>
+            <p>Upload the main exam schedule.</p>
           </div>
           <label for="file2" class="dropzone" data-dropzone>
             <strong>Choose timetable</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>date</code>, <code>subject</code></small>
-            <input type="file" class="file-input" name="file2" id="file2" accept=".xls,.xlsx" data-file-input />
+            <small>Required: <code>exam_code</code>, <code>subject_name</code>, <code>session</code></small>
+            <input type="file" class="file-input" name="file" id="file2" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
 
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Third Year</span>
-            <h3>Timetable workbook</h3>
-            <p>Upload the third year schedule.</p>
+            <span class="upload-year">Optional</span>
+            <h3>Additional workbook</h3>
+            <p>Upload another schedule file.</p>
           </div>
           <label for="file3" class="dropzone" data-dropzone>
             <strong>Choose timetable</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>date</code>, <code>subject</code></small>
+            <small>Use the same required exam columns.</small>
             <input type="file" class="file-input" name="file3" id="file3" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
 
         <article class="workspace-upload-card">
           <div>
-            <span class="upload-year">Fourth Year</span>
-            <h3>Timetable workbook</h3>
-            <p>Upload the fourth year schedule.</p>
+            <span class="upload-year">Optional</span>
+            <h3>Additional workbook</h3>
+            <p>Upload another schedule file.</p>
           </div>
           <label for="file4" class="dropzone" data-dropzone>
             <strong>Choose timetable</strong>
             <small data-file-name>No file selected yet</small>
-            <small>Required: <code>date</code>, <code>subject</code></small>
+            <small>Shared exams reuse the same <code>exam_code</code>.</small>
             <input type="file" class="file-input" name="file4" id="file4" accept=".xls,.xlsx" data-file-input />
           </label>
         </article>
@@ -105,6 +105,72 @@
         <button type="submit" class="button button-primary">Upload Timetable Workbooks</button>
         <a href="{{ url_for('view_timetable') }}" class="button button-secondary">View Timetable Data</a>
       </div>
+
+      {% if summaries is defined and summaries %}
+      <div class="preview-grid">
+        {% for summary in summaries %}
+        <article class="preview-card">
+          <div class="card-head">
+            <div>
+              <p class="eyebrow">{{ summary.filename }}</p>
+              <h3>Timetable import summary</h3>
+            </div>
+            <span class="badge badge-primary">{{ summary.exams_created_or_updated }} exams</span>
+          </div>
+          <div class="readiness-list">
+            <div><span></span><strong>{{ summary.sessions_created_or_reused }}</strong><small>Sessions</small></div>
+            <div><span></span><strong>{{ summary.candidates_registered }}</strong><small>Candidates</small></div>
+            <div><span></span><strong>{{ summary.duplicate_candidates }}</strong><small>Duplicates skipped</small></div>
+          </div>
+          {% if summary.warnings %}
+          <div class="alert alert-warning">
+            <strong>Warnings</strong>
+            <p>{{ summary.warnings[:3]|join(' ') }}</p>
+          </div>
+          {% endif %}
+          {% if summary.errors %}
+          <div class="alert alert-danger">
+            <strong>Validation errors</strong>
+            <p>
+              {% for error in summary.errors[:4] %}
+              {{ error.message if error.message is defined else error['message'] }}
+              {% endfor %}
+            </p>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if sessions is defined and sessions %}
+      <div class="workspace-table-wrap">
+        <table class="workspace-table">
+          <thead>
+            <tr>
+              <th>Session</th>
+              <th>Programme</th>
+              <th>Start</th>
+              <th>Exams</th>
+              <th>Candidates</th>
+              <th>Allocations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+            <tr>
+              <td>{{ session.date }} {{ session.session_name }}</td>
+              <td>{{ session.programme_type }}</td>
+              <td>{{ session.default_start_time }}</td>
+              <td>{{ session.exam_count }}</td>
+              <td>{{ session.candidate_count }}</td>
+              <td>{{ session.allocation_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
     </form>
 
     <aside class="ops-side-column">
@@ -112,13 +178,13 @@
         <div class="ops-panel-header">
           <div>
             <h2>Schedule mapping</h2>
-            <p>How timetable sheets feed seat allocation.</p>
+          <p>How uploaded rows become seating-ready exams.</p>
           </div>
         </div>
         <div class="schedule-flow">
-          <div><span>1</span><strong>Read workbook</strong><small>Extract sheet data</small></div>
-          <div><span>2</span><strong>Map branch</strong><small>Match sections to subjects</small></div>
-          <div><span>3</span><strong>Store dates</strong><small>Generate day-wise plans</small></div>
+          <div><span>1</span><strong>Create session</strong><small>Date and time period</small></div>
+          <div><span>2</span><strong>Create exam</strong><small>Exam code and duration</small></div>
+          <div><span>3</span><strong>Register candidates</strong><small>Shared exams grouped together</small></div>
         </div>
       </article>
 
@@ -132,12 +198,12 @@
         <div class="workspace-table-wrap">
           <table class="workspace-table">
             <thead>
-              <tr><th>Date</th><th>Subject</th><th>Group</th></tr>
+              <tr><th>Exam Code</th><th>Session</th><th>Group</th></tr>
             </thead>
             <tbody>
-              <tr><td>21-05-2026</td><td>Data Structures</td><td>CS</td></tr>
-              <tr><td>24-05-2026</td><td>Networks</td><td>EC</td></tr>
-              <tr><td>01-06-2026</td><td>Control Systems</td><td>EE</td></tr>
+              <tr><td>CS101</td><td>Morning</td><td>Computer Science, IT</td></tr>
+              <tr><td>DP204</td><td>Afternoon</td><td>Diploma IT</td></tr>
+              <tr><td>BN301</td><td>Night</td><td>BIT Night</td></tr>
             </tbody>
           </table>
         </div>

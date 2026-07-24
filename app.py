@@ -1,48 +1,112 @@
-from flask import Flask, flash, render_template, request, redirect, url_for, jsonify, session, Markup
+from functools import wraps
+
+from flask import Flask, flash, render_template, request, redirect, url_for, jsonify, session
+from markupsafe import Markup
 from datetime import datetime
 from static.converter import excel_to_json
 import os
-import math
 import json
 from werkzeug.utils import secure_filename
+from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
+from bson import ObjectId
+
+from services.db_setup import initialize_exam_centric_collections
+from services.exam_service import list_session_summaries
+from services.import_service import (
+    allowed_excel_file,
+    import_students_from_excel,
+    import_timetable_from_excel,
+)
+from services.lookup_service import student_allocations_by_roll_number
+from services.room_service import ensure_rooms, get_rooms_by_codes, room_code, seed_default_rooms
+from services.seating_service import (
+    generate_seating_for_session,
+    list_generated_sessions,
+    preview_session_capacity,
+    room_wise_allocations,
+)
 
 # configuring flask
 
 app = Flask(__name__)
-app.debug = True
+app.debug = os.getenv("FLASK_DEBUG") == "1"
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv("MAX_UPLOAD_MB", "16")) * 1024 * 1024
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # app.config['UPLOAD_FOLDER'] = r'C:\Users\hp\Desktop\Exam-Seat-Arrangement\uploads'
 
 # Load environment variables from .env file
 load_dotenv()
 
-app.secret_key = os.getenv("SECRET_KEY")
+app.secret_key = os.getenv("SECRET_KEY") or "development-secret-change-me"
 
 # Get the MongoDB connection string from the environment variable
 # to set environment variable setx MONGO_PASSWORD your_pass
-MONGO_PASSWORD =os.getenv("MONGO_PASSWORD")
-MONGO_URI = f"mongodb+srv://stevenkashaigili340:{MONGO_PASSWORD}@cluster0.fsedap8.mongodb.net/?appName=Cluster0"
+MONGO_PASSWORD = os.getenv("MONGO_PASSWORD")
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    f"mongodb+srv://stevenkashaigili340:{MONGO_PASSWORD}@cluster0.fsedap8.mongodb.net/?appName=Cluster0",
+)
 
 # Connect to MongoDB
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=3000)
 
 # client = pymongo.MongoClient(
 #     "mongodb://localhost:27017")
 
-db = client.Studetails
+db = client[os.getenv("MONGO_DB_NAME", "Studetails")]
 usercollections = db.users
 stucollections = db.student
+students_collection = db.students
 
 # global variables
 listy = []
 filled = False
+data2 = None
+data3 = None
+data4 = None
+timetable2 = None
+timetable3 = None
+timetable4 = None
 with open('static/dates.txt', 'r') as datefiles:
     dates = json.load(datefiles)
+
+try:
+    initialize_exam_centric_collections(db)
+    seed_default_rooms(db)
+except PyMongoError:
+    # Keep the app importable if MongoDB is temporarily unavailable.
+    pass
+
+
+def login_required(view_func):
+    @wraps(view_func)
+    def wrapper(*args, **kwargs):
+        if not session.get("username"):
+            flash("Please sign in to continue.", "login-error")
+            return redirect(url_for("login"))
+        return view_func(*args, **kwargs)
+    return wrapper
+
+
+def save_uploaded_workbook(file_storage):
+    if not file_storage or not file_storage.filename:
+        return None
+    if not allowed_excel_file(file_storage.filename):
+        raise ValueError("Only .xls and .xlsx files are supported.")
+    filename = secure_filename(file_storage.filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file_storage.save(path)
+    return path
+
+
+def selected_room_codes_from_request(items):
+    return [room_code(item) for item in items]
 
 # routes
 # homepage
@@ -54,7 +118,7 @@ def index():
 @app.route('/admin/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         
         # Check if the username already exists in the database
@@ -65,7 +129,13 @@ def register():
         else:
             # If the username is unique, insert the new user into the database
             usercollections.insert_one(
-                {'username': username, 'password': password})
+                {
+                    'username': username,
+                    'password_hash': generate_password_hash(password),
+                    'role': 'admin',
+                    'created_at': datetime.utcnow(),
+                    'updated_at': datetime.utcnow(),
+                })
             flash('Registration successful!', 'registration-success')
             return redirect(url_for('login'))
     else:
@@ -77,14 +147,29 @@ def register():
 def login():
     if request.method == 'POST':
         # Retrieve the username and password from the form
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         
         # Check if the username and password match a user in the database
-        user = usercollections.find_one(
-            {'username': username, 'password': password})
+        user = usercollections.find_one({'username': username})
         
-        if user:
+        valid_password = False
+        if user and user.get("password_hash"):
+            valid_password = check_password_hash(user["password_hash"], password)
+        elif user and user.get("password") == password:
+            valid_password = True
+            usercollections.update_one(
+                {"_id": user["_id"]},
+                {
+                    "$set": {
+                        "password_hash": generate_password_hash(password),
+                        "updated_at": datetime.utcnow(),
+                    },
+                    "$unset": {"password": ""},
+                },
+            )
+
+        if valid_password:
             # If the user exists, store the username in the session
             session['username'] = username
             return redirect(url_for('admin'))
@@ -97,8 +182,17 @@ def login():
 
 # main page of admin where he can choose the classes
 @app.route('/admin')
+@login_required
 def admin():
-    return render_template('adminhome.html')
+    stats = {
+        "students": students_collection.count_documents({}),
+        "rooms": db.rooms.count_documents({"is_active": True}),
+        "sessions": db.exam_sessions.count_documents({}),
+        "exams": db.exams.count_documents({}),
+        "allocations": db.seat_allocations.count_documents({"is_active": True}),
+        "batches": db.generation_batches.count_documents({}),
+    }
+    return render_template('adminhome.html', stats=stats)
 
 
 # When student enters their rollnumber
@@ -106,25 +200,35 @@ def admin():
 @app.route('/student', methods=['GET', 'POST'])
 def student():
     if request.method == 'POST':
-        roll = request.form['roll_num']
-        student_data = stucollections.find_one({'rollnum': int(roll)})
-        
-        # Retrieve the seat number for the student
-        seatnum = None
-        if student_data is not None:
-            seatnum = student_data['seatnum']
-        return render_template('studentpage.html', roll_num=roll, seat_num=seatnum)
+        roll = request.form['roll_num'].strip()
+        student_data, allocations = student_allocations_by_roll_number(db, roll)
+
+        if student_data is None:
+            legacy_query = {'rollnum': int(roll)} if roll.isdigit() else {'rollnum': roll}
+            legacy_student = stucollections.find_one(legacy_query)
+            legacy_seats = legacy_student.get('seatnum') if legacy_student else None
+            return render_template('studentpage.html', roll_num=roll, seat_num=legacy_seats, legacy_lookup=True)
+
+        return render_template(
+            'studentpage.html',
+            roll_num=roll,
+            student=student_data,
+            seat_num=allocations,
+            legacy_lookup=False,
+        )
     else:
         return render_template('studentpage.html')
 
 
 @app.route('/class', methods=['GET'])
+@login_required
 def classchoose():
     return render_template('classavailable.html')
 
 
 # page for uploading student details
 @app.route('/uploaddata', methods=['GET'])
+@login_required
 def uploadpage():
     return render_template('studentdataupload.html')
 
@@ -136,393 +240,344 @@ def uploadpage():
 
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload_file():
-    file2 = request.files['file2']
-    file3 = request.files['file3']
-    file4 = request.files['file4']
+    upload_specs = [
+        ("file", None),
+        ("file2", "SecondYear"),
+        ("file3", "ThirdYear"),
+        ("file4", "FourthYear"),
+    ]
+    summaries = []
+    previews = {}
 
-    if file2.filename == '' and file3.filename == '' and file4.filename == '':
+    for field_name, legacy_year in upload_specs:
+        uploaded_file = request.files.get(field_name)
+        if not uploaded_file or not uploaded_file.filename:
+            continue
+        try:
+            path = save_uploaded_workbook(uploaded_file)
+            summary = import_students_from_excel(
+                db,
+                path,
+                default_metadata={"legacy_year": legacy_year},
+                strict=False,
+            )
+            summary["filename"] = uploaded_file.filename
+            summary["legacy_year"] = legacy_year
+            summaries.append(summary)
+            previews[field_name] = excel_to_json(path)
+        except Exception as exc:
+            summaries.append(
+                {
+                    "filename": uploaded_file.filename,
+                    "legacy_year": legacy_year,
+                    "total_rows": 0,
+                    "inserted": 0,
+                    "updated": 0,
+                    "skipped": 0,
+                    "warnings": [],
+                    "errors": [{"message": str(exc)}],
+                    "preview": {},
+                }
+            )
+
+    if not summaries:
         flash('No files uploaded', 'error')
         return render_template('studentdataupload.html')
 
-    if file2.filename:
-        filename2 = secure_filename(file2.filename)
-        file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
-        global data2
-        data2 = excel_to_json(os.path.join(
-            app.config['UPLOAD_FOLDER'], filename2))
+    global data2, data3, data4
+    data2 = previews.get("file") or previews.get("file2")
+    data3 = previews.get("file3")
+    data4 = previews.get("file4")
+
+    imported = sum(item.get("inserted", 0) + item.get("updated", 0) for item in summaries)
+    errors = sum(len(item.get("errors", [])) for item in summaries)
+    if errors:
+        flash('Student import completed with validation errors. Review the summary below.', 'danger')
     else:
-        data2 = None
+        flash('Student import completed: {} records inserted or updated.'.format(imported), 'success')
 
-    if file3.filename:
-        filename3 = secure_filename(file3.filename)
-        file3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename3))
-        global data3
-        data3 = excel_to_json(os.path.join(
-            app.config['UPLOAD_FOLDER'], filename3))
-    else:
-        data3 = None
-
-    if file4.filename:
-        filename4 = secure_filename(file4.filename)
-        file4.save(os.path.join(app.config['UPLOAD_FOLDER'], filename4))
-        global data4
-        data4 = excel_to_json(os.path.join(
-            app.config['UPLOAD_FOLDER'], filename4))
-    else:
-        data4 = None
-
-    if data2 is not None:
-        for sheet_name, sheet_data in data2.items():
-            stucollections.insert_many([
-                {**item, "sheet_name": sheet_name, "Year": "SecondYear", "classroom": None} for item in sheet_data
-            ])
-
-    if data3 is not None:
-        for sheet_name, sheet_data in data3.items():
-            stucollections.insert_many([
-                {**item, "sheet_name": sheet_name, "Year": "ThirdYear", "classroom": None} for item in sheet_data
-            ])
-
-    if data4 is not None:
-        for sheet_name, sheet_data in data4.items():
-            stucollections.insert_many([
-                {**item, "sheet_name": sheet_name, "Year": "FourthYear", "classroom": None} for item in sheet_data
-            ])
-
-    global listy
-    listy = []
-    details = []
-    details = stucollections.aggregate(
-        [{"$group": {"_id": "$subject", "ro": {"$push": "$rollnum"}}}])
-    for i in details:
-        listy.append(i)
-
-    return render_template('uploadeddata.html', data2=data2, data3=data3, data4=data4)
+    return render_template('uploadeddata.html', summaries=summaries, data2=data2, data3=data3, data4=data4)
 
 # page for displaying the data via "GET" method
 @app.route('/displaydata', methods=['GET'])
+@login_required
 def display_data():
-    return render_template('displaydata.html', data2=data2, data3=data3, data4=data4)
+    recent_students = list(
+        students_collection.find(
+            {},
+            {
+                "roll_number": 1,
+                "name": 1,
+                "department": 1,
+                "programme_type": 1,
+                "nta_level": 1,
+                "class_group": 1,
+                "migration_status": 1,
+            },
+        ).sort("updated_at", -1).limit(50)
+    )
+    return render_template('displaydata.html', data2=data2, data3=data3, data4=data4, students=recent_students)
 
 # here the timetable is uploaded via timetableupload.html
 # the filename is checked
 @app.route('/timetable', methods=['GET', 'POST'])
+@login_required
 def timetable():
     if request.method == 'POST':
-        # Retrieve uploaded files
-        file2 = request.files['file2']
-        file3 = request.files['file3']
-        file4 = request.files['file4']
+        upload_specs = ["file", "file2", "file3", "file4"]
+        summaries = []
+        previews = {}
 
-        if not file2 and not file3 and not file4:
+        for field_name in upload_specs:
+            uploaded_file = request.files.get(field_name)
+            if not uploaded_file or not uploaded_file.filename:
+                continue
+            try:
+                path = save_uploaded_workbook(uploaded_file)
+                summary = import_timetable_from_excel(db, path, strict=True)
+                summary["filename"] = uploaded_file.filename
+                summaries.append(summary)
+                previews[field_name] = excel_to_json(path)
+            except Exception as exc:
+                summaries.append(
+                    {
+                        "filename": uploaded_file.filename,
+                        "total_rows": 0,
+                        "sessions_created_or_reused": 0,
+                        "exams_created_or_updated": 0,
+                        "candidates_registered": 0,
+                        "duplicate_candidates": 0,
+                        "warnings": [],
+                        "errors": [{"message": str(exc)}],
+                    }
+                )
+
+        if not summaries:
             flash('No files uploaded', 'error')
             return render_template('timetableupload.html')
 
-        # Check if file2 is uploaded
-        if file2.filename:
-            filename2 = secure_filename(file2.filename)
-            file2.save(os.path.join(app.config['UPLOAD_FOLDER'], filename2))
-            global timetable2
-            timetable2 = excel_to_json(os.path.join(
-                app.config['UPLOAD_FOLDER'], filename2))
-        else:
-            timetable2 = None
-
-        # Check if file3 is uploaded
-        if file3.filename:
-            filename3 = secure_filename(file3.filename)
-            file3.save(os.path.join(app.config['UPLOAD_FOLDER'], filename3))
-            global timetable3
-            timetable3 = excel_to_json(os.path.join(
-                app.config['UPLOAD_FOLDER'], filename3))
-        else:
-            timetable3 = None
-
-        # Check if file4 is uploaded
-        if file4.filename:
-            filename4 = secure_filename(file4.filename)
-            file4.save(os.path.join(app.config['UPLOAD_FOLDER'], filename4))
-            global timetable4
-            timetable4 = excel_to_json(os.path.join(
-                app.config['UPLOAD_FOLDER'], filename4))
-        else:
-            timetable4 = None
-
-        # "Year" field is set to "SecondYear"
-        # creates a list of the "_id" field values for those documents.
-        # It then repeats this process for students in their third and fourth year of study,
-        # Fetch student IDs for each year level
-
-        second_year_students = stucollections.find({"Year": "SecondYear"})
-        second_year_student_ids = [student["_id"]
-                                   for student in second_year_students]
-        third_year_students = stucollections.find({"Year": "ThirdYear"})
-        third_year_student_ids = [student["_id"]
-                                  for student in third_year_students]
-        fourth_year_students = stucollections.find({"Year": "FourthYear"})
-        fourth_year_student_ids = [student["_id"]
-                                   for student in fourth_year_students]
-
-        # The code first checks if the timetable exists by checking if "timetable2" is not None.
-        # If it does exist, the code iterates over the sheets in the timetable ("timetable2.items()"),
-        # and for each subject in each sheet, it converts the "date" field to a string in the format '%d-%m-%Y'
-        # using the "datetime.fromtimestamp()" and "strftime()" functions.
-        # It then checks if the subject date is already in the "dates" list, and if not , adds it to the list.
-        # The code then updates the "subject" field for each sheet in the "stucollections"
-        # collection based on the sheet name, year level, and student IDs.
-        # For each sheet, it uses the "update_many()" method to update the "subject" field of all documents in the collection
-        # where the "sheet_name" field is equal to the current sheet, the "Year" field is equal to "SecondYear",
-        # and the "_id" field is in the list of second-year student IDs retrieved earlier.
-
-        # The updated "subject" field is set to the contents of the corresponding sheet in the "timetable2" dictionary,
-        # which is accessed using the sheet name as the key(e.g., "timetable2["csa"]").
-        # Update subjects in the "stucollections" collection based on the uploaded timetables
-
-        if timetable2 is not None:
-            for sheet_name, subjects in timetable2.items():
-                for subject in subjects:
-                    subject_date = datetime.fromtimestamp(
-                        subject['date'] / 1000.0).strftime('%d-%m-%Y')
-                    subject['date'] = subject_date
-                    if subject_date not in dates:
-                        dates.append(subject_date)
-            stucollections.update_many(
-                {"sheet_name": "csa", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "csb", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ec", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["ec"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ee", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["ee"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ad", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["ad"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ce", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["ce"]}}
-            )
-            # stucollections.update_many(
-            #     {"sheet_name": "mea", "Year": "SecondYear",
-            #         "_id": {"$in": second_year_student_ids}},
-            #     {"$set": {"subject": timetable2["me"]}}
-            # )
-            # stucollections.update_many(
-            #     {"sheet_name": "meb", "Year": "SecondYear",
-            #         "_id": {"$in": second_year_student_ids}},
-            #     {"$set": {"subject": timetable2["me"]}}
-            # )
-            stucollections.update_many(
-                {"sheet_name": "me", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "mr", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["mr"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "rb", "Year": "SecondYear",
-                    "_id": {"$in": second_year_student_ids}},
-                {"$set": {"subject": timetable2["rb"]}}
-            )
-
-        if timetable3 is not None:
-            for sheet_name, subjects in timetable3.items():
-                for subject in subjects:
-                    subject_date = datetime.fromtimestamp(
-                        subject['date'] / 1000.0).strftime('%d-%m-%Y')
-                    subject['date'] = subject_date
-                    if subject_date not in dates:
-                        dates.append(subject_date)
-            stucollections.update_many(
-                {"sheet_name": "csa", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "csb", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ee", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["ee"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ec", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["ec"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ce", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["ce"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "mea", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "meb", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "me", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "mr", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["mr"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ad", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["ad"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "rb", "Year": "ThirdYear",
-                    "_id": {"$in": third_year_student_ids}},
-                {"$set": {"subject": timetable3["rb"]}}
-            )
-
-        if timetable4 is not None:
-            for sheet_name, subjects in timetable4.items():
-                for subject in subjects:
-                    subject_date = datetime.fromtimestamp(
-                        subject['date'] / 1000.0).strftime('%d-%m-%Y')
-                    subject['date'] = subject_date
-                    if subject_date not in dates:
-                        dates.append(subject_date)
-            stucollections.update_many(
-                {"sheet_name": "csa", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "csb", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["cs"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ec", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["ec"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ce", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["ce"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "ee", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["ee"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "me", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "mea", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "meb", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["me"]}}
-            )
-            stucollections.update_many(
-                {"sheet_name": "mr", "Year": "FourthYear",
-                    "_id": {"$in": fourth_year_student_ids}},
-                {"$set": {"subject": timetable4["mr"]}}
-            )
-
+        global timetable2, timetable3, timetable4, dates
+        timetable2 = previews.get("file") or previews.get("file2")
+        timetable3 = previews.get("file3")
+        timetable4 = previews.get("file4")
+        dates = sorted({session_doc["date"] for session_doc in db.exam_sessions.find({}, {"date": 1})})
         with open('static/dates.txt', 'w') as f:
             json.dump(dates, f, indent=4)
-            flash('Upload successful', 'success')
-        return render_template('timetableupload.html')
-    else:
-        flash('Upload failed', 'danger')
-    return render_template('timetableupload.html')
+
+        errors = sum(len(item.get("errors", [])) for item in summaries)
+        exams = sum(item.get("exams_created_or_updated", 0) for item in summaries)
+        candidates = sum(item.get("candidates_registered", 0) for item in summaries)
+        if errors:
+            flash('Timetable import completed with validation errors. Review the summary below.', 'danger')
+        else:
+            flash('Timetable import completed: {} exams prepared and {} candidates registered.'.format(exams, candidates), 'success')
+        return render_template('timetableupload.html', summaries=summaries, sessions=list_session_summaries(db))
+    return render_template('timetableupload.html', sessions=list_session_summaries(db))
 
 # the timetable is fetched and displayed here
 @app.route('/viewtimetable', methods=['GET'])
+@login_required
 def view_timetable():
-    # Fetch the documents from the MongoDB collection
-    documents = stucollections.find(
-        {}, {'sheet_name': 1, 'subject': 1, 'Year': 1})
-    
-    # Dictionary to store the timetable data
-    timetables = {}
-    for doc in documents:
-        year = doc['Year']
-        sheet_name = doc['sheet_name']
-        subject = doc['subject']
-
-        if year not in timetables:
-            timetables[year] = {}
-
-        if sheet_name not in timetables[year]:
-            timetables[year][sheet_name] = []
-        # Append the subject to the corresponding year and sheet_name in the timetable dictionary
-        timetables[year][sheet_name].append(subject)
-        
-    # Convert the timetable dictionary to JSON format
-    timetables = jsonify(timetables)
-    return timetables
+    sessions = []
+    for session_doc in list_session_summaries(db):
+        exams = []
+        for exam in db.exams.find({"session_id": session_doc["_id"]}).sort("exam_code", 1):
+            exams.append({
+                "exam_code": exam.get("exam_code"),
+                "subject_name": exam.get("subject_name"),
+                "nta_level": exam.get("nta_level"),
+                "programme_type": exam.get("programme_type"),
+                "start_time": exam.get("start_time"),
+                "end_time": exam.get("end_time"),
+                "candidate_count": db.exam_candidates.count_documents({"exam_id": exam["_id"], "status": "eligible"}),
+            })
+        sessions.append({
+            "id": str(session_doc["_id"]),
+            "session_code": session_doc.get("session_code"),
+            "date": session_doc.get("date"),
+            "session_name": session_doc.get("session_name"),
+            "programme_type": session_doc.get("programme_type"),
+            "exam_count": session_doc.get("exam_count"),
+            "candidate_count": session_doc.get("candidate_count"),
+            "allocation_count": session_doc.get("allocation_count"),
+            "exams": exams,
+        })
+    return jsonify(sessions)
 
 
 # unlike the /displaydata which displays the uploaded data
 # this route fetches the uploaded data from the mongodb
 @app.route('/viewdata', methods=['GET'])
+@login_required
 def view_data():
-    # Fetch the documents from the MongoDB collection
-    documents = stucollections.find(
-        {}, {'name': 1, 'rollnum': 1, 'sheet_name': 1, 'Year': 1})
-    
-    # List to store the retrieved data
+    documents = students_collection.find(
+        {},
+        {
+            'name': 1,
+            'roll_number': 1,
+            'department': 1,
+            'programme_type': 1,
+            'nta_level': 1,
+            'class_group': 1,
+            'academic_year': 1,
+            'migration_status': 1,
+        },
+    ).sort('roll_number', 1)
     data = []
-    
     for doc in documents:
-        # Extract the relevant fields from each document and append them to the data list
         data.append({
-            'name': doc['name'],
-            'rollnum': doc['rollnum'],
-            'sheet_name': doc['sheet_name'],
-            'Year': doc['Year']
+            'name': doc.get('name'),
+            'roll_number': doc.get('roll_number'),
+            'department': doc.get('department'),
+            'programme_type': doc.get('programme_type'),
+            'nta_level': doc.get('nta_level'),
+            'class_group': doc.get('class_group'),
+            'academic_year': doc.get('academic_year'),
+            'migration_status': doc.get('migration_status'),
         })
-        
-    # Convert the data list to JSON format
-    data = jsonify(data)
-    return data
+    return jsonify(data)
+
+
+@app.route('/sessions', methods=['GET'])
+@login_required
+def list_sessions():
+    return jsonify(
+        [
+            {
+                "id": str(item["_id"]),
+                "session_code": item.get("session_code"),
+                "date": item.get("date"),
+                "session_name": item.get("session_name"),
+                "programme_type": item.get("programme_type"),
+                "default_start_time": item.get("default_start_time"),
+                "exam_count": item.get("exam_count"),
+                "candidate_count": item.get("candidate_count"),
+                "allocation_count": item.get("allocation_count"),
+                "warnings": item.get("warnings", []),
+            }
+            for item in list_session_summaries(db)
+        ]
+    )
+
+
+@app.route('/exams', methods=['GET'])
+@login_required
+def list_exams():
+    exams = []
+    for exam in db.exams.find({}).sort([("date", 1), ("start_time", 1), ("exam_code", 1)]):
+        session_doc = db.exam_sessions.find_one({"_id": exam.get("session_id")}) or {}
+        exams.append(
+            {
+                "id": str(exam["_id"]),
+                "exam_code": exam.get("exam_code"),
+                "subject_name": exam.get("subject_name"),
+                "nta_level": exam.get("nta_level"),
+                "programme_type": exam.get("programme_type"),
+                "date": exam.get("date"),
+                "session": session_doc.get("session_name"),
+                "start_time": exam.get("start_time"),
+                "end_time": exam.get("end_time"),
+                "candidate_count": db.exam_candidates.count_documents({"exam_id": exam["_id"], "status": "eligible"}),
+            }
+        )
+    return jsonify(exams)
+
+
+@app.route('/rooms', methods=['GET', 'POST'])
+@login_required
+def rooms():
+    if request.method == 'POST':
+        payload = request.get_json(silent=True) or request.form
+        try:
+            rooms_created = ensure_rooms(
+                db,
+                [
+                    {
+                        "room_name": payload.get("room_name"),
+                        "building": payload.get("building"),
+                        "rows": payload.get("rows"),
+                        "columns": payload.get("columns"),
+                        "capacity": payload.get("capacity"),
+                    }
+                ],
+            )
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 400
+        return jsonify({"room_id": str(rooms_created[0]["_id"]), "room_code": rooms_created[0]["room_code"]})
+
+    return jsonify(
+        [
+            {
+                "id": str(room["_id"]),
+                "room_code": room.get("room_code"),
+                "room_name": room.get("room_name"),
+                "building": room.get("building"),
+                "rows": room.get("rows"),
+                "columns": room.get("columns"),
+                "capacity": room.get("capacity"),
+                "is_active": room.get("is_active"),
+            }
+            for room in db.rooms.find({}).sort("room_name", 1)
+        ]
+    )
+
+
+@app.route('/rooms/availability', methods=['POST'])
+@login_required
+def configure_room_availability():
+    payload = request.get_json(silent=True) or request.form
+    try:
+        room_id = ObjectId(payload.get("room_id"))
+        session_id = ObjectId(payload.get("session_id"))
+        session_doc = db.exam_sessions.find_one({"_id": session_id})
+        if not session_doc:
+            return jsonify({"error": "Exam session not found"}), 404
+        db.room_availability.update_one(
+            {"room_id": room_id, "session_id": session_id},
+            {
+                "$set": {
+                    "room_id": room_id,
+                    "session_id": session_id,
+                    "date": session_doc.get("date"),
+                    "is_available": str(payload.get("is_available", "true")).lower() != "false",
+                    "reason": payload.get("reason"),
+                    "updated_at": datetime.utcnow(),
+                },
+                "$setOnInsert": {"created_at": datetime.utcnow()},
+            },
+            upsert=True,
+        )
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify({"status": "saved"})
+
+
+@app.route('/seating/preview', methods=['GET'])
+@login_required
+def seating_preview():
+    session_id = request.args.get("session_id")
+    room_codes = session.get("selected_room_codes", [])
+    rooms = get_rooms_by_codes(db, room_codes)
+    if not session_id or not rooms:
+        return jsonify({"error": "Select a session and rooms first."}), 400
+    preview = preview_session_capacity(db, session_id, [str(room["_id"]) for room in rooms])
+    return jsonify(
+        {
+            "session_id": str(preview["session"]["_id"]),
+            "exam_count": preview["exam_count"],
+            "total_candidates": preview["total_candidates"],
+            "total_capacity": preview["total_capacity"],
+            "room_count": len(preview["rooms"]),
+            "warnings": preview["warnings"],
+        }
+    )
 
 
 # here we are assigning the classname and seat num for each class
 @app.route('/details', methods=['POST'])
+@login_required
 def details():
     if request.method == 'POST':
         # Get the list of selected items from the form
@@ -573,6 +628,19 @@ def details():
             if item in class_details:
                 class_data.append(class_details[item])
 
+        ensure_rooms(
+            db,
+            [
+                {
+                    "room_name": item["class_name"],
+                    "columns": item["column"],
+                    "rows": item["rows"],
+                }
+                for item in class_data
+            ],
+        )
+        session["selected_room_codes"] = selected_room_codes_from_request(items)
+
         # Write the class_data list to 'static/stuarrange.txt' file as JSON
         with open('static/stuarrange.txt', 'w') as f:
             json.dump(class_data, f, indent=4)
@@ -589,211 +657,138 @@ def details():
 # the timetable/date is noted . stuarrange.txt files which is the seating arrangement is generated for each day in the timetable
 
 @app.route('/seating', methods=['GET'])
+@login_required
 def seating():
     global filled
-    
-    # Check if 'stuarrange.txt' file doesn't exist, flash an error message and redirect to 'admin' route
-    if not os.path.exists('static/stuarrange.txt'):
-        flash('Choose Class', 'error')
-        return redirect(url_for('admin'))
-    
-    if filled:
+    room_codes = session.get("selected_room_codes", [])
+    if not room_codes and os.path.exists('static/stuarrange.txt'):
         with open('static/stuarrange.txt', 'r') as stufiles:
-            stulist = json.load(stufiles)  # Load the JSON data from the file
-        flash('Already generated', 'error')
-        return redirect(url_for('admin'))
-    
+            room_codes = [room_code(item.get("class_name")) for item in json.load(stufiles)]
+    if not room_codes:
+        flash('Choose classrooms before generating seating.', 'error')
+        return redirect(url_for('classchoose'))
+
+    rooms = get_rooms_by_codes(db, room_codes)
+    if not rooms:
+        flash('No active rooms found for the selected classrooms.', 'danger')
+        return redirect(url_for('classchoose'))
+
+    selected_session_id = request.args.get("session_id")
+    replace = request.args.get("replace") == "1"
+    if selected_session_id:
+        target_sessions = [db.exam_sessions.find_one({"_id": ObjectId(selected_session_id)})]
     else:
-        #reset data to avoid redundancy
-        stucollections.update_many({}, {"$unset": {"seatnum": ""}})
-        
-        for date in dates:
-            global listyy
-            
-            #all date , subjects and students
-            listyy = []
-            
-            #rollnumbers of each subject
-            details = stucollections.aggregate(
-                [{"$group": {"_id": "$subject", "ro": {"$push": "$rollnum"}}}])
-            for i in details:
-                listyy.append(i)
-            
-            #sorting rollnumber by date of exam.
-            #current date subjects and students
-            listy = []
-            for item in listyy:
-                for item1 in item["_id"]:
-                    if item1.get("date") == date:
-                        tempdict = dict(item)
-                        tempdict["_id"] = item1
-                        listy.append(tempdict)
-                        
-            with open('static/stuarrange.txt', 'r') as stufiles:
-                stulist = json.load(stufiles)
-             
-                
-            for i in stulist:
-                i["a"] = []
-                i["b"] = []
-                class_name = i.get("class_name")
-                if len(listy) == 0:
-                    break
-                
-                # Calculate the number of seats in 'a' ,'b'
-                a = math.ceil(int(i["column"])/2)*int(i["rows"])
-                b = (int(i["column"])*int(i["rows"]))-a
-                
-                #selecting the subject into firstitem
-                firstitem = listy[0]
-                
-                #inserts current date subject
-                idlist = []
-                idlist.append(firstitem["_id"])
-                
-                listy.pop(0)
-                
-                # Assign students to seats in category 'a'
-                for j in range(0, a):
-                    #checking if currentsubject students is over and seats and students of other subject exist
-                    if len(firstitem["ro"]) == 0:
-                        
-                        #check if students list is empty
-                        if len(listy) == 0:
-                            break
-                        
-                        #takes next subject into firstitem
-                        firstitem = listy[0]
-                        
-                        #contains currents date's(firstitem selected) subject
-                        idlist.append(firstitem["_id"])
-                        listy.pop(0)
-                        
-                    i["a"].append(firstitem["ro"][0])
-                    #assigning seat
-                    
-                    seatinfo = [
-                        {"date": date, "seatnum": "a" + str(len(i["a"])), "classroom": class_name, "subject": firstitem["_id"]["subject"]}]
-                    stucollections.update_one({"rollnum": firstitem["ro"][0]}, {
-                        "$addToSet": {"seatnum": seatinfo}})
-                    
-                    #remove student after seating from the current subject
-                    firstitem["ro"].pop(0)
-                    
-                #a section is over while students are remaining
-                #then remaining students is appended back to the listy
-                if len(firstitem["ro"]) != 0:
-                    listy.append(firstitem)
-                
-                # check if students list is empty
-                if len(listy) == 0:
-                    break
-                
-                
-                # takes next subject into firstitem since a has been filled. And different subject should be taken
-                firstitem = listy[0]
-                listy.pop(0)
-                
-                # Assign students to seats in category 'b'
-                for k in range(0, b):
-                    if len(firstitem["ro"]) == 0:
-                        
-                        # check if students list is empty
-                        if len(listy) == 0:
-                            break
-                        
-                        # takes next subject into firstitem since there are no students left for that subject(firstitem)
-                        firstitem = listy[0]
-                        listy.pop(0)
-                    
-                    
-                    #check if a has the same subject as b
-                    if firstitem["_id"] in idlist:
-                        break
-                    #this is why some rows are left in b column
-                    
-                    i["b"].append(firstitem["ro"][0])
-                    seatinfo = [
-                        {"date": date, "seatnum": "b" + str(len(i["b"])), "classroom": class_name, "subject": firstitem["_id"]["subject"]}]
-                    stucollections.update_one({"rollnum": firstitem["ro"][0]}, {
-                        "$addToSet": {"seatnum": seatinfo}})
-                    firstitem["ro"].pop(0)
-                    
-                # b section is over while students are remaining
-                # then remaining students is appended back to the listy
-                if len(firstitem["ro"]) != 0:
-                    listy.append(firstitem)
-                    
-            newlist = list(stulist)
-            
-            stunum=0
-            for listitem in listy:
-                stunum += len(listitem["ro"])
-            if stunum> 0:
-                    flash('Warning: Number of items exceeds total capacity.', 'danger')
-                    return render_template('classavailable.html',stunum=stunum)
-            
-            # Open 'stuarrange<date>.txt' file in write mode
-            with open('static/stuarrange'+date+'.txt', 'w') as f:
-                json.dump(newlist, f, indent=4)
-            filled = True  # Set 'filled' to True to indicate that seating is generated
+        target_sessions = [item for item in list_session_summaries(db) if item.get("candidate_count", 0) > 0]
 
+    target_sessions = [item for item in target_sessions if item]
+    if not target_sessions:
+        flash('No exam sessions with eligible candidates were found. Upload a valid timetable first.', 'danger')
+        return redirect(url_for('timetable'))
 
-        flash('Generated', 'success')
-        return render_template("adminhome.html")
+    results = []
+    for session_doc in target_sessions:
+        try:
+            result = generate_seating_for_session(
+                db,
+                session_doc["_id"],
+                [str(room["_id"]) for room in rooms],
+                generated_by=session.get("username", "admin"),
+                replace=replace,
+            )
+            results.append((session_doc, result))
+        except Exception as exc:
+            results.append((session_doc, {"status": "failed", "warnings": [str(exc)], "allocated_candidates": 0}))
+
+    completed = [result for _, result in results if result.get("status") == "completed"]
+    failed = [(session_doc, result) for session_doc, result in results if result.get("status") != "completed"]
+    if completed:
+        filled = True
+        flash('Generated seating for {} session(s).'.format(len(completed)), 'success')
+    for session_doc, result in failed:
+        label = "{} {} {}".format(session_doc.get("date"), session_doc.get("session_name"), session_doc.get("programme_type"))
+        flash('{} failed: {}'.format(label, "; ".join(result.get("warnings", []))), 'danger')
+
+    stats = {
+        "students": students_collection.count_documents({}),
+        "rooms": db.rooms.count_documents({"is_active": True}),
+        "sessions": db.exam_sessions.count_documents({}),
+        "exams": db.exams.count_documents({}),
+        "allocations": db.seat_allocations.count_documents({"is_active": True}),
+        "batches": db.generation_batches.count_documents({}),
+    }
+    return render_template("adminhome.html", stats=stats, generation_results=results)
 
 
 @app.route('/viewseating', methods=['GET'])
+@login_required
 def viewseating():
     global filled
-    if not filled:
+    generated_sessions = list_generated_sessions(db)
+    if not generated_sessions and not filled:
         flash('Firstly generate seating', 'error')
         return render_template("adminhome.html")
-    with open('static/dates.txt', 'r') as file:
-        content = file.read()
-    return render_template('viewseating.html', dates=Markup(content))
+    return render_template(
+        'viewseating.html',
+        sessions=Markup(json.dumps(generated_sessions)),
+        dates=Markup(json.dumps([item["label"] for item in generated_sessions])),
+    )
 # Render the 'viewseating.html' template, passing the content of 'dates.txt' as the 'dates' variable
 # Markup is used to mark the content as safe to render HTML tags, assuming the content contains HTML
 
 
 @app.route('/viewseating/<path:name>', methods=['GET'])
+@login_required
 def viewseating1(name):
     global filled
-    if filled:
-        file_loc = 'static/stuarrange'+name+'.txt'
-        # Assumes static folder is defined in your Flask app
-        with open(file_loc, 'r') as file:  # Open the file in read mode
-            content = file.read()  # Read the content of the file
-
-    else:
+    try:
+        return jsonify(room_wise_allocations(db, name))
+    except Exception:
+        if filled:
+            file_loc = 'static/stuarrange'+name+'.txt'
+            if os.path.exists(file_loc):
+                with open(file_loc, 'r') as file:
+                    return file.read()
         flash('Firstly generate seating', 'error')
         return render_template("adminhome.html")
-    return content
 
 
 # Resetting everything out
 @app.route('/reset', methods=['GET'])
+@login_required
 def reset():
     return render_template('reset.html')
 
 
 @app.route('/reset/collections', methods=['GET'])
+@login_required
 def reset_collections():
     global filled
+    if request.args.get("confirm") != "YES":
+        message = "Student cleanup was not run. Add confirm=YES after taking a backup."
+        return render_template('reset.html', message=message)
     filled = False
-    stucollections.drop()  # Drop the 'student' collection
-    message = "Student data has been deleted."
+    students_collection.drop()
+    db.exam_candidates.drop()
+    db.seat_allocations.drop()
+    initialize_exam_centric_collections(db)
+    message = "Student, candidate, and allocation data has been deleted."
     return render_template('reset.html', message=message)
 
 
 @app.route('/reset/users', methods=['GET'])
+@login_required
 def reset_users():
+    if request.args.get("confirm") != "YES":
+        message = "User cleanup was not run. Add confirm=YES after taking a backup."
+        return render_template('reset.html', message=message)
     usercollections.drop()  # Drop the 'users' collection
+    initialize_exam_centric_collections(db)
     message = "Users has been deleted."
     return render_template('reset.html', message=message)
 
 
 @app.route('/reset/static', methods=['GET'])
+@login_required
 def reset_static():
     folder_path = 'static'
     files = os.listdir(folder_path)  # Get a list of all files in the folder
@@ -809,6 +804,7 @@ def reset_static():
 
 
 @app.route('/reset/uploads', methods=['GET'])
+@login_required
 def reset_uploads():
     folder_path = 'uploads'
     files = os.listdir(folder_path)
@@ -819,7 +815,43 @@ def reset_uploads():
     return render_template('reset.html', message=message)
 
 
+@app.route('/reset/timetable', methods=['GET'])
+@login_required
+def reset_timetable():
+    global filled, dates, timetable2, timetable3, timetable4
+    if request.args.get("confirm") != "YES":
+        message = "Timetable cleanup was not run. Add confirm=YES after taking a backup."
+        return render_template('reset.html', message=message)
+
+    db.exam_sessions.drop()
+    db.exams.drop()
+    db.exam_candidates.drop()
+    db.seat_allocations.drop()
+    db.generation_batches.drop()
+    db.room_availability.drop()
+    stucollections.update_many({}, {"$unset": {"subject": "", "seatnum": ""}})
+    initialize_exam_centric_collections(db)
+
+    folder_path = 'static'
+    for file in os.listdir(folder_path):
+        if file.startswith("stuarrange"):
+            os.remove(os.path.join(folder_path, file))
+
+    file_path = os.path.join(folder_path, 'dates.txt')
+    with open(file_path, 'w') as file:
+        file.write('[]')
+
+    dates = []
+    timetable2 = None
+    timetable3 = None
+    timetable4 = None
+    filled = False
+    message = "Timetable, exam sessions, candidates, seating allocations, and generated seating files have been cleared."
+    return render_template('reset.html', message=message)
+
+
 @app.route('/reset/dates', methods=['GET'])
+@login_required
 def reset_dates():
     folder_path = 'static'
     file_path = os.path.join(folder_path, 'dates.txt')
@@ -830,5 +862,4 @@ def reset_dates():
 
 # main function
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
-
+    app.run(debug=app.debug, host='0.0.0.0')

@@ -12,7 +12,7 @@
         <p class="eyebrow">Workbook Preview</p>
         <h2>Current uploaded data</h2>
         <p class="muted-text">
-          Check the imported sheet groups for each year before moving to the next step.
+          Check recently imported exam-centric student records before moving to the next step.
         </p>
       </div>
       <div class="button-row">
@@ -26,43 +26,34 @@
     </div>
   </div>
 
-  {% if (data2 is defined and data2 is not none) or (data3 is defined and data3 is not none) or (data4 is defined and data4 is not none) %}
-  <div class="preview-grid">
-    {% if data2 is defined and data2 is not none %}
-    <article class="json-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Second Year</p>
-          <h3>Structured workbook data</h3>
-        </div>
-      </div>
-      <pre class="json-block">{{ data2|tojson(indent=2) }}</pre>
-    </article>
-    {% endif %}
-
-    {% if data3 is defined and data3 is not none %}
-    <article class="json-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Third Year</p>
-          <h3>Structured workbook data</h3>
-        </div>
-      </div>
-      <pre class="json-block">{{ data3|tojson(indent=2) }}</pre>
-    </article>
-    {% endif %}
-
-    {% if data4 is defined and data4 is not none %}
-    <article class="json-card">
-      <div class="card-head">
-        <div>
-          <p class="eyebrow">Fourth Year</p>
-          <h3>Structured workbook data</h3>
-        </div>
-      </div>
-      <pre class="json-block">{{ data4|tojson(indent=2) }}</pre>
-    </article>
-    {% endif %}
+  {% if students is defined and students %}
+  <div class="workspace-table-wrap">
+    <table class="workspace-table">
+      <thead>
+        <tr>
+          <th>Roll Number</th>
+          <th>Name</th>
+          <th>Department</th>
+          <th>Programme</th>
+          <th>NTA</th>
+          <th>Class Group</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td>{{ student.roll_number }}</td>
+          <td>{{ student.name }}</td>
+          <td>{{ student.department or '-' }}</td>
+          <td>{{ student.programme_type or '-' }}</td>
+          <td>{{ student.nta_level or '-' }}</td>
+          <td>{{ student.class_group or '-' }}</td>
+          <td><span class="table-status">{{ student.migration_status or 'ready' }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
   {% else %}
   <div class="empty-card">

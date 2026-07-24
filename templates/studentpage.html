@@ -96,10 +96,8 @@
               type="text"
               name="roll_num"
               id="roll_num"
-              placeholder="Example: 21024"
+              placeholder="Example: NIT/BIT/2024/001"
               value="{{ roll_num or '' }}"
-              inputmode="numeric"
-              pattern="[0-9]+"
               required
             />
           </div>
@@ -142,7 +140,7 @@
       <div>
         <p class="student-pill">Seat details ready</p>
         <h2>Seat details for roll number {{ roll_num }}</h2>
-        <p>Review every scheduled exam entry and the seat assigned for that date.</p>
+        <p>Review every scheduled exam entry and the seat assigned for that session.</p>
       </div>
       <div class="student-result-count">
         <span>Exam entries</span>
@@ -152,7 +150,7 @@
 
     <div class="student-results-grid">
       {% for seat in seat_num %}
-      {% set seat_info = seat[0] %}
+      {% set seat_info = seat[0] if legacy_lookup else seat %}
       <article class="student-result-card">
         <div class="student-result-card-head">
           <div>
@@ -162,10 +160,30 @@
           <span>{{ seat_info['seatnum'] }}</span>
         </div>
         <div class="seat-meta">
+          {% if not legacy_lookup %}
+          <div class="seat-meta-row">
+            <span>Student</span>
+            <strong>{{ seat_info['student_name'] }} - {{ seat_info['roll_number'] }}</strong>
+          </div>
+          <div class="seat-meta-row">
+            <span>Exam code</span>
+            <strong>{{ seat_info['exam_code'] }}</strong>
+          </div>
+          {% endif %}
           <div class="seat-meta-row">
             <span>Subject</span>
             <strong>{{ seat_info['subject'] }}</strong>
           </div>
+          {% if not legacy_lookup %}
+          <div class="seat-meta-row">
+            <span>Session</span>
+            <strong>{{ seat_info['session'] }} | {{ seat_info['start_time'] }} - {{ seat_info['end_time'] }}</strong>
+          </div>
+          <div class="seat-meta-row">
+            <span>Programme / NTA</span>
+            <strong>{{ seat_info['programme_type'] }} | NTA {{ seat_info['nta_level'] }}</strong>
+          </div>
+          {% endif %}
           <div class="seat-meta-row">
             <span>Classroom</span>
             <strong>{{ seat_info['classroom'] }}</strong>
