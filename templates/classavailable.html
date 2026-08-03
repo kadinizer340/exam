@@ -1,21 +1,18 @@
 {% extends "admin_base.html" %}
 
 {% set page_title = "Class Selection" %}
-{% set page_subtitle = "Choose the classrooms available for the current exam seating run." %}
+{% set page_subtitle = "Choose active database classrooms available for the current seating run." %}
 {% set active_page = "classes" %}
-{% set adm_classes = [('ADM 303', 6, 7), ('ADM 304', 8, 3), ('ADM 305', 7, 3), ('ADM 306', 7, 3), ('ADM 307', 7, 3), ('ADM 308', 7, 3), ('ADM 309', 7, 3), ('ADM 310', 7, 3), ('ADM 311', 7, 3)] %}
-{% set east_classes = [('EAB 206', 7, 3), ('EAB 306', 7, 3), ('EAB 401', 8, 3), ('EAB 304', 7, 3), ('EAB 303', 7, 3), ('EAB 104', 7, 3), ('EAB 103', 7, 3), ('EAB 203', 7, 3), ('EAB 204', 7, 3), ('EAB 415', 8, 15), ('EAB 416', 8, 14), ('EAB 310', 7, 3)] %}
-{% set west_classes = [('WAB 206', 7, 3), ('WAB 105', 7, 3), ('WAB 107', 7, 3), ('WAB 207', 8, 3), ('WAB 212', 7, 3), ('WAB 210', 7, 3), ('WAB 211', 7, 3), ('WAB 205', 7, 3), ('WAB 305', 7, 3), ('WAB 303', 7, 3), ('WAB 403', 7, 3), ('WAB 405', 7, 3), ('WAB 412', 7, 3)] %}
 
-{% macro class_tile(name, columns, rows) -%}
+{% macro class_tile(room) -%}
 <label class="class-option">
-  <input type="checkbox" name="item[]" value="{{ name }}" />
+  <input type="checkbox" name="item[]" value="{{ room.code }}" />
   <span class="class-card">
     <span class="class-card-top">
-      <span class="class-name">{{ name }}</span>
-      <span class="class-capacity">{{ columns * rows }}</span>
+      <span class="class-name">{{ room.name }}</span>
+      <span class="class-capacity">{{ room.capacity }}</span>
     </span>
-    <span class="class-meta">{{ columns }} columns x {{ rows }} rows</span>
+    <span class="class-meta">{{ room.building }} | {{ room.code }}</span>
     <span class="mini-seat-grid" aria-hidden="true">
       {% for item in range(12) %}<i></i>{% endfor %}
     </span>
@@ -24,12 +21,17 @@
 {%- endmacro %}
 
 {% block admin_content %}
+{% set total_capacity = namespace(value=0) %}
+{% for room in classrooms %}
+{% set total_capacity.value = total_capacity.value + room.capacity %}
+{% endfor %}
+
 <section class="ops-page classroom-workspace">
   <div class="ops-stats-grid page-stats">
     <article class="ops-stat-card">
-      <span>Available rooms</span>
-      <strong>{{ adm_classes|length + east_classes|length + west_classes|length }}</strong>
-      <small>Across three blocks</small>
+      <span>Active rooms</span>
+      <strong>{{ classrooms|length }}</strong>
+      <small>Available for selection</small>
     </article>
     <article class="ops-stat-card">
       <span>Selected rooms</span>
@@ -37,24 +39,26 @@
       <small>Current seating run</small>
     </article>
     <article class="ops-stat-card success">
-      <span>Largest rooms</span>
-      <strong>EAB</strong>
-      <small>High-capacity halls</small>
+      <span>Total capacity</span>
+      <strong>{{ total_capacity.value }}</strong>
+      <small>Active room seats</small>
     </article>
     <article class="ops-stat-card">
-      <span>Next step</span>
-      <strong>Generate</strong>
-      <small>Create seating layout</small>
+      <span>Management</span>
+      <strong>CRUD</strong>
+      <small>Database-backed rooms</small>
     </article>
   </div>
 
   <div class="ops-panel classroom-toolbar">
     <div class="ops-panel-header">
       <div>
-        <h2>Classroom capacity management</h2>
-        <p>Select rooms available for the current exam session. The selected capacity controls final seating generation.</p>
+        <h2>Room selection for seating generation</h2>
+        <p>Select active classrooms from the database. Add, edit, activate, or deactivate rooms in Classroom Management.</p>
       </div>
-      <span class="session-chip">Room selection</span>
+      <div class="button-row">
+        <a href="{{ url_for('classroom_management') }}" class="button button-secondary">Classroom Management</a>
+      </div>
     </div>
 
     {% if stunum %}
@@ -68,8 +72,8 @@
     {% if messages %}
     <div class="alert-stack">
       {% for category, message in messages %}
-      <div class="alert {% if category == 'danger' %}alert-warning{% else %}alert-danger{% endif %}">
-        <strong>Selection issue</strong>
+      <div class="alert {% if category in ['success'] %}alert-success{% elif category == 'danger' %}alert-warning{% else %}alert-danger{% endif %}">
+        <strong>Classroom status</strong>
         <p>{{ message }}</p>
       </div>
       {% endfor %}
@@ -78,56 +82,37 @@
     {% endwith %}
   </div>
 
+  {% if classrooms %}
   <form action="{{ url_for('details') }}" method="POST" data-class-form class="class-groups workspace-class-groups">
+    {% for building, rooms in classrooms|groupby('building') %}
     <section class="class-group ops-panel">
       <div class="class-group-header">
         <div>
-          <p class="eyebrow">Administration Block</p>
-          <h3>ADM classrooms</h3>
+          <p class="eyebrow">Building</p>
+          <h3>{{ building }}</h3>
         </div>
-        <span>{{ adm_classes|length }} rooms</span>
+        <span>{{ rooms|length }} rooms</span>
       </div>
       <div class="class-grid">
-        {% for name, columns, rows in adm_classes %}
-        {{ class_tile(name, columns, rows) }}
+        {% for room in rooms %}
+        {{ class_tile(room) }}
         {% endfor %}
       </div>
     </section>
-
-    <section class="class-group ops-panel">
-      <div class="class-group-header">
-        <div>
-          <p class="eyebrow">East Wing</p>
-          <h3>East classrooms</h3>
-        </div>
-        <span>{{ east_classes|length }} rooms</span>
-      </div>
-      <div class="class-grid">
-        {% for name, columns, rows in east_classes %}
-        {{ class_tile(name, columns, rows) }}
-        {% endfor %}
-      </div>
-    </section>
-
-    <section class="class-group ops-panel">
-      <div class="class-group-header">
-        <div>
-          <p class="eyebrow">West Wing</p>
-          <h3>West classrooms</h3>
-        </div>
-        <span>{{ west_classes|length }} rooms</span>
-      </div>
-      <div class="class-grid">
-        {% for name, columns, rows in west_classes %}
-        {{ class_tile(name, columns, rows) }}
-        {% endfor %}
-      </div>
-    </section>
+    {% endfor %}
 
     <div class="workspace-form-actions sticky-actions">
       <button type="submit" class="button button-primary">Proceed to Generate</button>
       <a href="{{ url_for('admin') }}" class="button button-secondary">Back to Dashboard</a>
     </div>
   </form>
+  {% else %}
+  <div class="empty-card">
+    <p class="eyebrow">No active rooms</p>
+    <h2>No active classrooms are available for seating generation.</h2>
+    <p class="muted-text">Create or activate rooms in Classroom Management first.</p>
+    <a href="{{ url_for('classroom_management') }}" class="button button-primary">Open Classroom Management</a>
+  </div>
+  {% endif %}
 </section>
 {% endblock %}

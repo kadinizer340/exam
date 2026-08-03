@@ -71,14 +71,14 @@
         <small>Schedules</small>
       </a>
       <a
-        href="{{ url_for('classchoose') }}"
+        href="{{ url_for('classroom_management') }}"
         class="sidebar-link {% if active_page == 'classes' %}is-active{% endif %}"
       >
         <span class="sidebar-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h2M12 10h2M16 10h2M8 14h2M12 14h2M16 14h2"/></svg>
         </span>
         <span class="sidebar-link-text">Classrooms</span>
-        <small>Capacity</small>
+        <small>Management</small>
       </a>
       <a
         href="{{ url_for('viewseating') }}"

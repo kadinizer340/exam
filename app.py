@@ -21,7 +21,17 @@ from services.import_service import (
     import_timetable_from_excel,
 )
 from services.lookup_service import student_allocations_by_roll_number
-from services.room_service import ensure_rooms, get_rooms_by_codes, room_code, seed_default_rooms
+from services.room_service import (
+    archive_room,
+    create_room,
+    get_rooms_by_codes,
+    list_rooms as list_classrooms,
+    migrate_existing_room_records,
+    room_code,
+    seed_default_rooms,
+    toggle_room_status,
+    update_room,
+)
 from services.seating_service import (
     generate_seating_for_session,
     list_generated_sessions,
@@ -79,6 +89,7 @@ with open('static/dates.txt', 'r') as datefiles:
 try:
     initialize_exam_centric_collections(db)
     seed_default_rooms(db)
+    migrate_existing_room_records(db)
 except PyMongoError:
     # Keep the app importable if MongoDB is temporarily unavailable.
     pass
@@ -107,6 +118,57 @@ def save_uploaded_workbook(file_storage):
 
 def selected_room_codes_from_request(items):
     return [room_code(item) for item in items]
+
+
+def room_to_classroom_card(room):
+    columns = int(room.get("columns") or 10)
+    rows = int(room.get("rows") or 10)
+    return {
+        "id": str(room["_id"]),
+        "name": room.get("room_name"),
+        "code": room.get("room_code"),
+        "building": room.get("building") or "Unassigned",
+        "columns": columns,
+        "rows": rows,
+        "capacity": int(room.get("capacity") or columns * rows),
+    }
+
+
+def classroom_query_context():
+    page = int(request.args.get("page", 1) or 1)
+    per_page = 20
+    query = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()
+    building = request.args.get("building", "").strip()
+    sort = request.args.get("sort", "name").strip()
+    rooms, total = list_classrooms(
+        db,
+        query=query,
+        status=status or None,
+        building=building or None,
+        sort=sort,
+        page=page,
+        per_page=per_page,
+    )
+    buildings = sorted(
+        [
+            item
+            for item in db.rooms.distinct("building", {"is_deleted": {"$ne": True}})
+            if item
+        ]
+    )
+    return {
+        "classrooms": rooms,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": max((total + per_page - 1) // per_page, 1),
+        "query": query,
+        "status_filter": status,
+        "building_filter": building,
+        "sort": sort,
+        "buildings": buildings,
+    }
 
 # routes
 # homepage
@@ -223,7 +285,62 @@ def student():
 @app.route('/class', methods=['GET'])
 @login_required
 def classchoose():
-    return render_template('classavailable.html')
+    active_rooms = list(
+        db.rooms.find({"is_active": True, "is_deleted": {"$ne": True}}).sort(
+            [("building", 1), ("room_name", 1)]
+        )
+    )
+    return render_template(
+        'classavailable.html',
+        classrooms=[room_to_classroom_card(room) for room in active_rooms],
+    )
+
+
+@app.route('/classrooms', methods=['GET', 'POST'])
+@login_required
+def classroom_management():
+    if request.method == 'POST':
+        try:
+            create_room(db, request.form)
+            flash('Classroom saved successfully.', 'success')
+            return redirect(url_for('classroom_management'))
+        except Exception as exc:
+            flash(str(exc), 'danger')
+    return render_template('classrooms.html', **classroom_query_context())
+
+
+@app.route('/classrooms/<room_id>/edit', methods=['POST'])
+@login_required
+def classroom_edit(room_id):
+    try:
+        update_room(db, room_id, request.form)
+        flash('Classroom updated successfully.', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('classroom_management'))
+
+
+@app.route('/classrooms/<room_id>/toggle', methods=['POST'])
+@login_required
+def classroom_toggle(room_id):
+    try:
+        room = toggle_room_status(db, room_id)
+        status = "activated" if room.get("is_active") else "deactivated"
+        flash('Classroom {}.'.format(status), 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('classroom_management'))
+
+
+@app.route('/classrooms/<room_id>/delete', methods=['POST'])
+@login_required
+def classroom_delete(room_id):
+    try:
+        result = archive_room(db, room_id)
+        flash('Classroom {} successfully.'.format(result), 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return redirect(url_for('classroom_management'))
 
 
 # page for uploading student details
@@ -491,21 +608,10 @@ def rooms():
     if request.method == 'POST':
         payload = request.get_json(silent=True) or request.form
         try:
-            rooms_created = ensure_rooms(
-                db,
-                [
-                    {
-                        "room_name": payload.get("room_name"),
-                        "building": payload.get("building"),
-                        "rows": payload.get("rows"),
-                        "columns": payload.get("columns"),
-                        "capacity": payload.get("capacity"),
-                    }
-                ],
-            )
+            room = create_room(db, payload)
         except Exception as exc:
             return jsonify({"error": str(exc)}), 400
-        return jsonify({"room_id": str(rooms_created[0]["_id"]), "room_code": rooms_created[0]["room_code"]})
+        return jsonify({"room_id": str(room["_id"]), "room_code": room["room_code"]})
 
     return jsonify(
         [
@@ -519,7 +625,7 @@ def rooms():
                 "capacity": room.get("capacity"),
                 "is_active": room.get("is_active"),
             }
-            for room in db.rooms.find({}).sort("room_name", 1)
+            for room in db.rooms.find({"is_deleted": {"$ne": True}}).sort("room_name", 1)
         ]
     )
 
@@ -580,68 +686,29 @@ def seating_preview():
 @login_required
 def details():
     if request.method == 'POST':
-        # Get the list of selected items from the form
         items = request.form.getlist('item[]')
+        if not items:
+            flash('Select at least one active classroom.', 'danger')
+            return redirect(url_for('classchoose'))
 
-        # List to store the details of selected classes
-        class_data = []
+        rooms = get_rooms_by_codes(db, items)
+        class_data = [
+            {
+                "class_name": room["room_name"],
+                "classroom_code": room["room_code"],
+                "column": int(room.get("columns") or 10),
+                "rows": int(room.get("rows") or 10),
+                "capacity": int(room.get("capacity") or 0),
+            }
+            for room in rooms
+        ]
+        if not class_data:
+            flash('No active classrooms matched the selection.', 'danger')
+            return redirect(url_for('classchoose'))
 
-        # Dictionary mapping class items to their details
-        class_details = {
-            'ADM 303': {'class_name': 'ADM 303', 'column': 6, 'rows': 7},
-            'ADM 304': {'class_name': 'ADM 304', 'column': 8, 'rows': 3},
-            'ADM 305': {'class_name': 'ADM 305', 'column': 7, 'rows': 3},
-            'ADM 306': {'class_name': 'ADM 306', 'column': 7, 'rows': 3},
-            'ADM 307': {'class_name': 'ADM 307', 'column': 7, 'rows': 3},
-            'ADM 308': {'class_name': 'ADM 308', 'column': 7, 'rows': 3},
-            'ADM 309': {'class_name': 'ADM 309', 'column': 7, 'rows': 3},
-            'ADM 310': {'class_name': 'ADM 310', 'column': 7, 'rows': 3},
-            'ADM 311': {'class_name': 'ADM 311', 'column': 7, 'rows': 3},
-            'EAB 206': {'class_name': 'EAB 206', 'column': 7, 'rows': 3},
-            'EAB 306': {'class_name': 'EAB 306', 'column': 7, 'rows': 3},
-            'EAB 401': {'class_name': 'EAB 401', 'column': 8, 'rows': 3},
-            'EAB 304': {'class_name': 'EAB 304', 'column': 7, 'rows': 3},
-            'EAB 303': {'class_name': 'EAB 303', 'column': 7, 'rows': 3},
-            'EAB 104': {'class_name': 'EAB 104', 'column': 7, 'rows': 3},
-            'EAB 103': {'class_name': 'EAB 103', 'column': 7, 'rows': 3},
-            'EAB 203': {'class_name': 'EAB 203', 'column': 7, 'rows': 3},
-            'EAB 204': {'class_name': 'EAB 204', 'column': 7, 'rows': 3},
-            'WAB 206': {'class_name': 'WAB 206', 'column': 7, 'rows': 3},
-            'WAB 105': {'class_name': 'WAB 105', 'column': 7, 'rows': 3},
-            'WAB 107': {'class_name': 'WAB 107', 'column': 7, 'rows': 3},
-            'WAB 207': {'class_name': 'WAB 207', 'column': 8, 'rows': 3},
-            'WAB 212': {'class_name': 'WAB 212', 'column': 7, 'rows': 3},
-            'WAB 210': {'class_name': 'WAB 210', 'column': 7, 'rows': 3},
-            'WAB 211': {'class_name': 'WAB 211', 'column': 7, 'rows': 3},
-            'WAB 205': {'class_name': 'WAB 205', 'column': 7, 'rows': 3},
-            'WAB 305': {'class_name': 'WAB 305', 'column': 7, 'rows': 3},
-            'WAB 303': {'class_name': 'WAB 303', 'column': 7, 'rows': 3},
-            'WAB 403': {'class_name': 'WAB 403', 'column': 7, 'rows': 3},
-            'WAB 405': {'class_name': 'WAB 405', 'column': 7, 'rows': 3},
-            'EAB 415': {'class_name': 'EAB 415', 'column': 8, 'rows': 15},
-            'EAB 416': {'class_name': 'EAB 416', 'column': 8, 'rows': 14},
-            'WAB 412': {'class_name': 'WAB 412', 'column': 7, 'rows': 3},
-            'EAB 310': {'class_name': 'EAB 310', 'column': 7, 'rows': 3},
-        }
-
-        for item in items:
-            if item in class_details:
-                class_data.append(class_details[item])
-
-        ensure_rooms(
-            db,
-            [
-                {
-                    "room_name": item["class_name"],
-                    "columns": item["column"],
-                    "rows": item["rows"],
-                }
-                for item in class_data
-            ],
-        )
         session["selected_room_codes"] = selected_room_codes_from_request(items)
 
-        # Write the class_data list to 'static/stuarrange.txt' file as JSON
+        # Compatibility export for older viewers; MongoDB remains the source of truth.
         with open('static/stuarrange.txt', 'w') as f:
             json.dump(class_data, f, indent=4)
 

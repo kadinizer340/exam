@@ -1,0 +1,252 @@
+{% extends "admin_base.html" %}
+
+{% set page_title = "Classroom Management" %}
+{% set page_subtitle = "Create, edit, activate, deactivate, and archive examination classrooms from the database." %}
+{% set active_page = "classes" %}
+
+{% block admin_content %}
+<section class="ops-page classroom-workspace">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <section class="alert-stack">
+    {% for category, message in messages %}
+    <div class="alert {% if category == 'success' %}alert-success{% elif category == 'danger' %}alert-warning{% else %}alert-danger{% endif %}">
+      <strong>Classroom status</strong>
+      <p>{{ message }}</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  {% endwith %}
+
+  <div class="ops-stats-grid page-stats">
+    <article class="ops-stat-card">
+      <span>Total rooms</span>
+      <strong>{{ total }}</strong>
+      <small>Matching current filters</small>
+    </article>
+    <article class="ops-stat-card success">
+      <span>Minimum capacity</span>
+      <strong>100</strong>
+      <small>Seats per classroom</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Page</span>
+      <strong>{{ page }}</strong>
+      <small>of {{ total_pages }}</small>
+    </article>
+    <article class="ops-stat-card">
+      <span>Source</span>
+      <strong>MongoDB</strong>
+      <small>Data-driven rooms</small>
+    </article>
+  </div>
+
+  <div class="ops-two-column">
+    <form action="{{ url_for('classroom_management') }}" method="POST" class="ops-panel data-upload-panel">
+      <div class="ops-panel-header">
+        <div>
+          <h2>Add classroom</h2>
+          <p>Create a new examination room. Capacity must be at least 100 seats.</p>
+        </div>
+        <span class="session-chip">New room</span>
+      </div>
+
+      <div class="workspace-upload-grid">
+        <label class="student-field">
+          <span>Classroom code</span>
+          <input class="filter-input" type="text" name="room_code" placeholder="A101" required />
+        </label>
+        <label class="student-field">
+          <span>Classroom name</span>
+          <input class="filter-input" type="text" name="room_name" placeholder="Lecture Room A101" required />
+        </label>
+        <label class="student-field">
+          <span>Capacity</span>
+          <input class="filter-input" type="number" name="capacity" min="100" step="1" placeholder="120" required />
+        </label>
+        <label class="student-field">
+          <span>Building</span>
+          <input class="filter-input" type="text" name="building" placeholder="Administration Block" />
+        </label>
+        <label class="student-field">
+          <span>Floor</span>
+          <input class="filter-input" type="text" name="floor" placeholder="1" />
+        </label>
+        <label class="student-field">
+          <span>Status</span>
+          <select class="filter-input" name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="student-field">
+        <span>Notes</span>
+        <textarea class="filter-input" name="notes" rows="3" placeholder="Optional notes"></textarea>
+      </label>
+
+      <div class="workspace-form-actions">
+        <button type="submit" class="button button-primary">Add Classroom</button>
+        <a href="{{ url_for('classchoose') }}" class="button button-secondary">Select Rooms For Seating</a>
+      </div>
+    </form>
+
+    <aside class="ops-side-column">
+      <form action="{{ url_for('classroom_management') }}" method="GET" class="ops-panel">
+        <div class="ops-panel-header">
+          <div>
+            <h2>Search and filters</h2>
+            <p>Filter classrooms by status, building, or keyword.</p>
+          </div>
+        </div>
+        <label class="student-field">
+          <span>Search</span>
+          <input class="filter-input" type="search" name="q" value="{{ query }}" placeholder="Code, name, building" />
+        </label>
+        <label class="student-field">
+          <span>Status</span>
+          <select class="filter-input" name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>All</option>
+            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+        </label>
+        <label class="student-field">
+          <span>Building</span>
+          <select class="filter-input" name="building">
+            <option value="" {% if not building_filter %}selected{% endif %}>All buildings</option>
+            {% for building in buildings %}
+            <option value="{{ building }}" {% if building_filter == building %}selected{% endif %}>{{ building }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="student-field">
+          <span>Sort</span>
+          <select class="filter-input" name="sort">
+            <option value="name" {% if sort == 'name' %}selected{% endif %}>Name</option>
+            <option value="code" {% if sort == 'code' %}selected{% endif %}>Code</option>
+            <option value="building" {% if sort == 'building' %}selected{% endif %}>Building</option>
+            <option value="capacity" {% if sort == 'capacity' %}selected{% endif %}>Capacity</option>
+            <option value="updated" {% if sort == 'updated' %}selected{% endif %}>Last updated</option>
+          </select>
+        </label>
+        <div class="workspace-form-actions">
+          <button type="submit" class="button button-primary">Apply Filters</button>
+          <a href="{{ url_for('classroom_management') }}" class="button button-secondary">Clear</a>
+        </div>
+      </form>
+    </aside>
+  </div>
+
+  <div class="ops-panel">
+    <div class="ops-panel-header">
+      <div>
+        <h2>Classroom records</h2>
+        <p>Existing predefined rooms are seeded into this table and can be edited without changing source code.</p>
+      </div>
+      <a href="{{ url_for('classchoose') }}" class="button button-secondary">Use Rooms For Seating</a>
+    </div>
+
+    <div class="workspace-table-wrap">
+      <table class="workspace-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Building</th>
+            <th>Capacity</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for room in classrooms %}
+          <tr>
+            <td>{{ room.room_code }}</td>
+            <td>{{ room.room_name }}</td>
+            <td>{{ room.building or '-' }}</td>
+            <td>{{ room.capacity }}</td>
+            <td>
+              <span class="table-status {% if not room.is_active %}muted{% endif %}">
+                {{ 'Active' if room.is_active else 'Inactive' }}
+              </span>
+            </td>
+            <td>{{ room.updated_at.strftime('%Y-%m-%d %H:%M') if room.updated_at else '-' }}</td>
+            <td>
+              <div class="button-row">
+                <a href="#edit-{{ room._id }}" class="button button-secondary">Edit</a>
+                <form action="{{ url_for('classroom_toggle', room_id=room._id) }}" method="POST">
+                  <button type="submit" class="button button-secondary">
+                    {{ 'Deactivate' if room.is_active else 'Activate' }}
+                  </button>
+                </form>
+                <form action="{{ url_for('classroom_delete', room_id=room._id) }}" method="POST" onsubmit="return confirm('Archive or delete this classroom?');">
+                  <button type="submit" class="button button-danger">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <tr id="edit-{{ room._id }}">
+            <td colspan="7">
+              <form action="{{ url_for('classroom_edit', room_id=room._id) }}" method="POST" class="workspace-upload-grid">
+                <label class="student-field">
+                  <span>Classroom code</span>
+                  <input class="filter-input" type="text" value="{{ room.room_code }}" disabled />
+                </label>
+                <label class="student-field">
+                  <span>Classroom name</span>
+                  <input class="filter-input" type="text" name="room_name" value="{{ room.room_name }}" required />
+                </label>
+                <label class="student-field">
+                  <span>Capacity</span>
+                  <input class="filter-input" type="number" name="capacity" value="{{ room.capacity }}" min="100" step="1" required />
+                </label>
+                <label class="student-field">
+                  <span>Building</span>
+                  <input class="filter-input" type="text" name="building" value="{{ room.building or '' }}" />
+                </label>
+                <label class="student-field">
+                  <span>Floor</span>
+                  <input class="filter-input" type="text" name="floor" value="{{ room.floor or '' }}" />
+                </label>
+                <label class="student-field">
+                  <span>Status</span>
+                  <select class="filter-input" name="status">
+                    <option value="active" {% if room.is_active %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if not room.is_active %}selected{% endif %}>Inactive</option>
+                  </select>
+                </label>
+                <label class="student-field">
+                  <span>Notes</span>
+                  <textarea class="filter-input" name="notes" rows="2">{{ room.notes or '' }}</textarea>
+                </label>
+                <div class="workspace-form-actions">
+                  <button type="submit" class="button button-primary">Save Changes</button>
+                </div>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">No classrooms match the current filters.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="workspace-form-actions">
+      {% if page > 1 %}
+      <a class="button button-secondary" href="{{ url_for('classroom_management', page=page-1, q=query, status=status_filter, building=building_filter, sort=sort) }}">Previous</a>
+      {% endif %}
+      <span class="session-chip">Page {{ page }} of {{ total_pages }}</span>
+      {% if page < total_pages %}
+      <a class="button button-secondary" href="{{ url_for('classroom_management', page=page+1, q=query, status=status_filter, building=building_filter, sort=sort) }}">Next</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

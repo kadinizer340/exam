@@ -69,10 +69,10 @@
             <strong>Upload timetable</strong>
             <small>Create sessions and exams</small>
           </a>
-          <a href="{{ url_for('classchoose') }}" class="quick-action">
+          <a href="{{ url_for('classroom_management') }}" class="quick-action">
             <span class="quick-action-icon room"></span>
             <strong>Manage classrooms</strong>
-            <small>Select capacity</small>
+            <small>Create and edit rooms</small>
           </a>
           <a href="{{ url_for('seating') }}" class="quick-action" data-loading-trigger>
             <span class="quick-action-icon generate"></span>
@@ -93,7 +93,7 @@
             <h2>Classroom utilization</h2>
             <p>Compact room layout preview for seating distribution.</p>
           </div>
-          <a href="{{ url_for('classchoose') }}" class="panel-link">Manage rooms</a>
+          <a href="{{ url_for('classroom_management') }}" class="panel-link">Manage rooms</a>
         </div>
 
         <div class="room-management-grid">

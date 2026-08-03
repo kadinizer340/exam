@@ -1,5 +1,6 @@
 from collections import defaultdict, deque
 from datetime import datetime
+import math
 
 try:
     from bson import ObjectId
@@ -26,12 +27,19 @@ def session_time_range(exams, session):
 
 
 def room_seats(room):
-    half = (int(room["columns"]) + 1) // 2
+    capacity = int(room.get("capacity") or int(room["rows"]) * int(room["columns"]))
+    columns = int(room.get("columns") or 10)
+    rows = max(int(room.get("rows") or 0), int(math.ceil(capacity / columns)))
+    half = (columns + 1) // 2
     side_counts = defaultdict(int)
-    for row in range(1, int(room["rows"]) + 1):
-        for column in range(1, int(room["columns"]) + 1):
+    emitted = 0
+    for row in range(1, rows + 1):
+        for column in range(1, columns + 1):
+            if emitted >= capacity:
+                return
             side = "A" if column <= half else "B"
             side_counts[side] += 1
+            emitted += 1
             yield {
                 "seat_number": "{}-{:02d}".format(side, side_counts[side]),
                 "seat_row": row,

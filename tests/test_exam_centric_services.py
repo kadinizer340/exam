@@ -2,7 +2,7 @@ import unittest
 
 from services.exam_service import build_candidate_filter, session_warnings
 from services.import_service import normalize_optional_int
-from services.room_service import room_code, validate_room_dimensions
+from services.room_service import room_code, room_document, validate_capacity, validate_room_dimensions
 from services.seating_service import interleave_candidate_groups, room_seats
 from utils.time_utils import calculate_end_time, default_start_time_for_session, time_ranges_overlap
 from utils.validation import normalize_programme_type, parse_nta_level, split_multi_value
@@ -48,6 +48,22 @@ class ExamCentricServiceTests(unittest.TestCase):
         self.assertEqual(validate_room_dimensions("2", "3"), (2, 3))
         with self.assertRaises(ValueError):
             validate_room_dimensions(0, 3)
+
+    def test_classroom_capacity_minimum(self):
+        self.assertEqual(validate_capacity(100), 100)
+        self.assertEqual(validate_capacity("120.0"), 120)
+        with self.assertRaises(ValueError):
+            validate_capacity(80)
+
+    def test_default_room_seed_uses_operational_capacity_floor(self):
+        room = room_document({"room_name": "ADM 305", "building": "Administration Block", "rows": 7, "columns": 3})
+        self.assertEqual(room["legacy_layout_capacity"], 21)
+        self.assertEqual(room["capacity"], 100)
+
+    def test_room_seats_use_database_capacity(self):
+        seats = list(room_seats({"rows": 2, "columns": 4, "capacity": 100}))
+        self.assertEqual(len(seats), 100)
+        self.assertEqual(len({seat["seat_number"] for seat in seats}), 100)
 
     def test_candidate_interleaving_mixes_exams(self):
         groups = [
